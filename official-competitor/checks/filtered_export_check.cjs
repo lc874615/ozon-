@@ -1,0 +1,6 @@
+const vm=require('vm'),fs=require('fs'),assert=require('assert/strict');let handler,download;
+const props=[{name:'履约方式',value:'FBS'},{name:'品牌',value:'无品牌'},{name:'近28天销量',value:'6'}];
+const state={captureFilters:{after_date:'2026-01-01'},listingDateEvidence:{'123':[{value:'2026-01-02',source:'official_analytics_visible_table',label:'上架日期'}]},snapshots:{'123':{product_id:'123',properties:props},'456':{product_id:'456',properties:props}}};
+const chrome={runtime:{onMessage:{addListener:f=>handler=f}},storage:{local:{get:async keys=>Object.fromEntries(keys.map(k=>[k,state[k]]))}},downloads:{download:async d=>download=d}};
+const c={chrome,URL,Date,TextEncoder,importScripts:()=>{}};vm.createContext(c);for(const f of ['selection-filters.js','background.js'])vm.runInContext(fs.readFileSync('browser-extension/'+f,'utf8'),c);
+(async()=>{const result=await new Promise(r=>handler({action:'export'},{},r));assert.equal(result.status,'historical_data_exported');const data=JSON.parse(decodeURIComponent(download.url.split(',').slice(1).join(',')));assert.equal(data.observations.length,1);assert.equal(data.observations[0].product_id,'123');assert.equal(data.audit[0].product_id,'456');assert.equal(data.summary.review,1);assert(state.snapshots['456']);console.log('PASS pass-only export, official row date merge, missing date held, historical records retained');})();

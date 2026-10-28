@@ -6,6 +6,12 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     if(message.action.startsWith('auto-'))return await autoQueueAction(message);
     const validLink=raw=>{try{const u=new URL(raw);return u.protocol==='https:'&&['ozon.ru','www.ozon.ru'].includes(u.hostname)&&/^\/product\/(?:[^/]*-)?\d+\/?$/.test(u.pathname)?u.origin+u.pathname:null;}catch{return null;}};
     const run=async file=>{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab?.id)throw new Error('请先打开商品或搜索页面');return (await chrome.scripting.executeScript({target:{tabId:tab.id},files:[file]}))[0]?.result;};
+    if(message.action==='capture-listing-dates'){
+      const result=await run('listing-date-reader.js');
+      const {listingDateEvidence={}}=await store.get('listingDateEvidence');
+      for(const e of result.evidence||[]){const old=listingDateEvidence[e.sku]||[];if(!old.some(x=>x.value===e.value&&x.source_page===e.source_page))old.push(e);listingDateEvidence[e.sku]=old;}
+      await store.set({listingDateEvidence});return {status:result.evidence?.length?'dates_read':'date_column_not_available',matched_rows:result.evidence?.length||0,diagnostics:result.diagnostics,scope:result.scope};
+    }
     if(message.action==='save-filters'){const settings=parseFilterSettings(message.filters);await store.set({captureFilters:settings});return {status:'filters_saved',settings};}
     if(message.action==='get-filters'){const {captureFilters={}}=await store.get('captureFilters');return {status:'filters_loaded',settings:parseFilterSettings(captureFilters)};}
     if(message.action==='save-target'){
@@ -15,7 +21,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     }
     if(message.action==='capture-buyer'){
       const data=await run('collector.js');if(!data?.product_id||data.status==='blocked_verification')return data||{status:'empty'};
-      const {snapshots={},captureFilters={}}=await store.get(['snapshots','captureFilters']);data.selection_review=evaluateCaptureFilters(data,captureFilters);snapshots[data.product_id]=data;
+      const {snapshots={},captureFilters={},listingDateEvidence={}}=await store.get(['snapshots','captureFilters','listingDateEvidence']);data.selection_review=evaluateCaptureFilters(withListingEvidence(data,listingDateEvidence),captureFilters);snapshots[data.product_id]=data;
       await store.set({snapshots});return {status:data.status,sku:data.product_id,properties:data.properties.length,collected:Object.keys(snapshots).length,packaging_verified:false};
     }
     if(message.action==='read-links'||message.action==='save-queue'){
@@ -51,10 +57,12 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
         warning:'只导出当前已加载字段；未点击、填表、保存或发布，页面自身自动保存不受此工具控制。'};
     }
     if(message.action==='export'){
-      const {snapshots={},captureFilters={}}=await chrome.storage.local.get(['snapshots','captureFilters']);
-      const observations=Object.values(snapshots).map(d=>({...d,selection_review:evaluateCaptureFilters(d,captureFilters)}));
-      const data={schema_version:3,source:'local_browser_observations',filter_settings:parseFilterSettings(captureFilters),summary:Object.fromEntries(['pass','exclude','review'].map(k=>[k,observations.filter(d=>d.selection_review.decision===k).length])),observations};
-      await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-historical-observations.json',saveAs:true});
+      const {snapshots={},captureFilters={},listingDateEvidence={}}=await chrome.storage.local.get(['snapshots','captureFilters','listingDateEvidence']);
+      const evaluated=Object.values(snapshots).map(d=>({...d,selection_review:evaluateCaptureFilters(withListingEvidence(d,listingDateEvidence),captureFilters)}));
+      const observations=evaluated.filter(d=>d.selection_review.decision==='pass');
+      const data={schema_version:4,source:'filtered_local_browser_observations',filter_settings:parseFilterSettings(captureFilters),summary:Object.fromEntries(['pass','exclude','review'].map(k=>[k,evaluated.filter(d=>d.selection_review.decision===k).length])),observations,
+        audit:evaluated.filter(d=>d.selection_review.decision!=='pass').map(d=>({product_id:d.product_id,decision:d.selection_review.decision,checks:d.selection_review.checks}))};
+      await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-filtered-observations.json',saveAs:true});
       return {status:'historical_data_exported'};
     }
     if(message.action==='status'){const {dailyGoal=null,collectionQueue=[],snapshots={},autoQueue=null}=await store.get(['dailyGoal','collectionQueue','snapshots','autoQueue']);return {autoQueue,dailyGoal,queued:collectionQueue.length,collected:Object.keys(snapshots).length,mode:'user_clicked_current_form_export',version:chrome.runtime.getManifest().version,

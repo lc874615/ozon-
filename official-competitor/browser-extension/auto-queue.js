@@ -39,9 +39,9 @@ async function autoQueueTick(){
   if(result?.product_id!==expected||!result?.title)return await pauseAuto('wrong_or_empty_product_page');
   if(!Array.isArray(result.properties)||!result.properties.length)return await pauseAuto('attributes_not_loaded_expand_manually');
   // Re-read state after asynchronous browser operations: pause must win over late results.
-  const latest=await chrome.storage.local.get(['autoQueue','snapshots']);
+  const latest=await chrome.storage.local.get(['autoQueue','snapshots','listingDateEvidence']);
   if(latest.autoQueue?.status!=='running'||latest.autoQueue.started_at!==s.started_at)return;
-  result.selection_review=evaluateCaptureFilters(result,s.filters);
+  result.selection_review=evaluateCaptureFilters(withListingEvidence(result,latest.listingDateEvidence||{}),s.filters);
   s.counts=s.counts||{pass:0,exclude:0,review:0};s.counts[result.selection_review.decision]++;
   const saved=latest.snapshots||{};saved[expected]=result;s.index++;s.phase='navigate';
   if(s.index===s.urls.length){s.status='completed';s.finished_at=new Date().toISOString();s.reason='collection_only_complete';await chrome.alarms.clear(AUTO_ALARM);}

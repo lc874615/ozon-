@@ -33,3 +33,8 @@ function evaluateCaptureFilters(data,settings){
  }
  return {decision:checks.some(x=>x.state==='exclude')?'exclude':checks.some(x=>x.state==='review')?'review':'pass',settings:f,checks,scope:'observed_evidence_only_not_listing_approval'};
 }
+
+function withListingEvidence(data,evidence={}){
+ const rows=evidence[data.product_id]||[];
+ return {...data,properties:[...(data.properties||[]),...rows.map(e=>({name:'listing date',value:e.value,source:e.source,original_label:e.label,source_page:e.source_page,captured_at:e.captured_at}))]};
+}

@@ -200,5 +200,23 @@
     "exclude_sales_at_most": 5,
     "monthly_api_period_requires_semantic_verification": true,
     "unknown_signal": "review_not_pass_and_not_zero"
+  },
+  "currency_policy": {
+    "accounting_and_reporting_currency": "CNY",
+    "market_reference_currency": "CNY",
+    "green_display_price_multiplier": "1.10",
+    "cny_approximate_display_reference": "accepted_for_market_reference_by_user; not settlement verification",
+    "convert_only_for_foreign_currency_rules": true,
+    "rule_currency_examples": [
+      "RUB commission price tiers",
+      "RUB OGL goods-value limits"
+    ],
+    "fx_rate_required_fields": [
+      "rub_per_cny",
+      "source",
+      "as_of",
+      "verified"
+    ],
+    "do_not_assume_display_conversion_is_settlement_rate": true
   }
 }

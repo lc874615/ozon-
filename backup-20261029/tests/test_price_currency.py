@@ -6,6 +6,8 @@ class PriceCurrency(unittest.TestCase):
   r=normalize_buyer_snapshot(self.widget({'cardPrice':'193,57 ¥','price':'215,12 ¥','disclaimerPriceHeader':'Итого в CNY','disclaimerPriceBodyRs':[{'content':'Сумма в CNY приблизительная.'}]}))
   self.assertEqual(r['observed_prices']['currency'],'CNY');self.assertEqual(r['observed_prices']['bank_offer'],'193.57')
   self.assertTrue(r['observed_prices']['approximate_display_conversion']);self.assertNotIn('seller_price_reference_rub',r)
+  self.assertEqual(r['seller_price_reference_cny'],'212.9270')
+  self.assertNotIn('ruble_reference_missing_cny_display_is_not_settlement_rate',r['todo'])
  def test_yen_symbol_alone_is_ambiguous(self):
   r=normalize_buyer_snapshot(self.widget({'cardPrice':'193.57 ¥'}))
   self.assertEqual(r['observed_prices']['currency'],'UNKNOWN');self.assertNotIn('seller_price_reference_rub',r)

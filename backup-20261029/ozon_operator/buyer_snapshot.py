@@ -59,8 +59,11 @@ def normalize_buyer_snapshot(s):
                 out['seller_price_reference_rub']=str(D(card)*D('1.10'))
                 out['seller_reference_basis']='user specified card/green price times 1.10; estimate only'
             elif card and currency=='CNY':
-                out['seller_price_reference_cny_display_estimate']=str(D(card)*D('1.10'))
-                out['todo'].append('ruble_reference_missing_cny_display_is_not_settlement_rate')
+                out['seller_price_reference_cny']=str(D(card)*D('1.10'))
+                out['seller_price_reference_cny_display_estimate']=out['seller_price_reference_cny']
+                out['seller_reference_basis']='user specified CNY display bank/green price times 1.10; approximate market reference, not verified settlement income'
+                out['accounting_currency']='CNY'
+                out['rule_currency_conversion']='only when applying a rule denominated in another currency; requires sourced dated FX'
             elif currency=='UNKNOWN':out['todo'].append('price_currency_unverified')
         if widget.get('id','').startswith('state-webGallery-') and isinstance(data,dict):
             out['image_urls'] += [v['src'] for v in data.get('images',[]) if isinstance(v,dict) and v.get('src')]

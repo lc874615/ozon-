@@ -1,5 +1,8 @@
-# 当前入口：竞品官方来源文件模式
+# 当前工具入口
 
-当前工具与使用说明在 [official-competitor/README.md](official-competitor/README.md)。只处理正常下载的官方报表，按单个竞品SKU离线核验，不联网、不读取Cookie、不创建商品。
+- [0.4.1 用户点击后导出当前商品参数页](official-competitor/FORM_EXPORT.md)
+- [竞品官方报表离线导入](official-competitor/README.md)
 
-此前的日期备份是历史实验快照，不是当前推荐运行方式。请以本入口和 official-competitor 目录为准。
+当前页读取不调用后台业务接口、不读取Cookie、不改变表单或自动提交。它不能阻止页面自身保存，也不保证包含未加载标签或虚拟行。来源SKU提示不是身份核验结果。
+
+此前日期备份为历史实验，不是当前推荐采集路径。实际页面实测仍以用户导出文件为准。

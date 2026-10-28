@@ -1,9 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Ozon 官方来源模式",
-  "version": "0.4.0",
-  "description": "仅导出本机历史资料。网页自动采集、Cookie读取、内部接口及创建请求均已停用。",
+  "name": "Ozon 当前商品参数导出",
+  "version": "0.4.1",
+  "description": "用户点击后读取当前商品表单并导出JSON。无Cookie权限、持久网站权限或自动账号请求；不会填表或提交。",
   "permissions": [
+    "activeTab",
+    "scripting",
     "storage",
     "downloads"
   ],

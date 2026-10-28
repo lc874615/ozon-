@@ -1,7 +1,9 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Ozon 官方来源模式</title>
-<style>body{font:14px sans-serif;width:340px;padding:12px;line-height:1.6}button{padding:8px;margin:5px}pre{white-space:pre-wrap}</style>
-<h3>Ozon 官方来源模式</h3>
-<p>网页自动采集、内部接口和创建请求已停用。历史数据与单次执行标记保留在本机。</p>
-<p>后续使用后台正常导出的报表及官方 Seller API。这里只导出已保存的历史资料。</p>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>当前商品参数导出</title>
+<style>body{font:14px sans-serif;width:350px;padding:12px;line-height:1.6}button{padding:8px;margin:5px}pre{white-space:pre-wrap}input{width:95%;padding:6px}</style>
+<h3>导出当前商品参数</h3>
+<p>只在你点击时读取当前页面已加载字段。不切换分组、不填表、不发送额外页面请求、不点保存或发布。</p>
+<label for="sku-hint">来源SKU（可选提示，不代表自动验证）</label><input id="sku-hint" inputmode="numeric" placeholder="输入本次复制来源SKU">
+<button id="capture-form">读取并导出当前页参数</button>
+<p>其他标签、未加载行、iframe内容不保证包含。页面自己的草稿自动保存无法由本工具阻止。</p>
 <button id="export">导出历史资料</button><button id="status">查看状态</button>
 <pre id="result"></pre><script src="popup.js"></script></html>

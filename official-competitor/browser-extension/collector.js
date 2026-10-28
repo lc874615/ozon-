@@ -8,6 +8,9 @@ async function collectOzonSnapshot() {
   if (/доступ ограничен|подтвердите.{0,30}(человек|робот)|проверка безопасности|captcha|验证码|完成验证/i.test(text.slice(0,12000))) {
     return {status:'blocked_verification', source_url:location.href, captured_at:new Date().toISOString()};
   }
+  const waitForQuietDOM=()=>new Promise(resolve=>{let quiet;const finish=()=>{clearTimeout(quiet);clearTimeout(cap);observer.disconnect();resolve();};const observer=new MutationObserver(()=>{clearTimeout(quiet);quiet=setTimeout(finish,700);});const cap=setTimeout(finish,3000);observer.observe(document.body,{childList:true,subtree:true,characterData:true});quiet=setTimeout(finish,700);});
+  await waitForQuietDOM();
+  if(/доступ ограничен|проверка безопасности|captcha|验证码|完成验证/i.test(clean(document.body?.innerText).slice(0,12000)))return {status:'blocked_verification'};
   const characteristics = document.querySelector('[data-widget="webCharacteristics"],#section-characteristics');
   const properties = [], seen = new Set();
   const add = (name,value,source) => {
@@ -16,7 +19,8 @@ async function collectOzonSnapshot() {
     if (name && value && !seen.has(k)) {seen.add(k);properties.push({name,value,source});}
   };
   // Read semantic key/value pairs, not arbitrary neighboring price/card text.
-  const root=characteristics || document;
+  const shortCharacteristics=document.querySelector('[data-widget="webShortCharacteristics"]');
+  const root=characteristics || shortCharacteristics || document;
   for (const dt of root.querySelectorAll('dt')) {
     const dd=dt.nextElementSibling;
     const ddValue=dd?.tagName==='DD'?dd:dt.parentElement?.querySelector('dd');
@@ -25,6 +29,11 @@ async function collectOzonSnapshot() {
   for (const row of root.querySelectorAll('tr')) {
     const cells=row.querySelectorAll('th,td');
     if(cells.length===2)add(cells[0].innerText,cells[1].innerText,'dom:table');
+  }
+  // Short characteristics often use explicit label/value spans instead of dt/dd.
+  if(shortCharacteristics)for(const row of shortCharacteristics.querySelectorAll('li,[role="row"]')){
+    const cells=[...row.children].filter(el=>clean(el.innerText));
+    if(cells.length===2)add(cells[0].innerText,cells[1].innerText,'dom:short-characteristics-labelled-row');
   }
   const stateWidgets=[];
   // Restrict state to product widgets. Never serialize the global window,
@@ -54,7 +63,7 @@ async function collectOzonSnapshot() {
     status:properties.length?'attributes_observed':'attributes_missing', properties, images,
     price_widget_text:priceText, price_type_verified:false,
     characteristics_text:clean(characteristics?.innerText).slice(0,30000),
-    diagnostics:{ready_state:document.readyState,characteristics_found:!!characteristics,definition_terms:root.querySelectorAll('dt').length,definition_values:root.querySelectorAll('dd').length,product_widget_names:[...new Set([...document.querySelectorAll('[data-widget]')].map(el=>el.getAttribute('data-widget')).filter(n=>/Characteristics|ProductHeading|Price|Gallery/.test(n)))].slice(0,30)},
+    diagnostics:{ready_state:document.readyState,characteristics_found:!!characteristics,full_characteristics_loaded:!!characteristics&&characteristics.querySelectorAll('dt,tr').length>0,short_characteristics_text:clean(shortCharacteristics?.innerText).slice(0,5000),short_characteristics_html:shortCharacteristics?.innerHTML.slice(0,12000)||null,definition_terms:root.querySelectorAll('dt').length,definition_values:root.querySelectorAll('dd').length,price_widget_html:document.querySelector('[data-widget="webPrice"]')?.innerHTML.slice(0,12000)||null,product_widget_names:[...new Set([...document.querySelectorAll('[data-widget]')].map(el=>el.getAttribute('data-widget')).filter(n=>/Characteristics|ProductHeading|Price|Gallery/.test(n)))].slice(0,30)},
     widget_states:stateWidgets, packaging_data_verified:false};
 }
 collectOzonSnapshot();

@@ -1,8 +1,11 @@
 // Only buyer URLs from the user-supplied queue. No retry loop or seller writes.
 const AUTO_ALARM='ozon-buyer-queue';
-let autoBusy=false;
+let autoBusy=false,autoTimer=null;
+// Best-effort short scheduling; persisted queue + alarms remain the wake-up fallback.
+function scheduleAutoTick(ms=1500){if(autoTimer!==null)clearTimeout(autoTimer);autoTimer=setTimeout(()=>{autoTimer=null;autoQueueTick();},Math.max(0,ms));}
+
 const buyerSku=raw=>{try{const u=new URL(raw);if(u.protocol!=='https:'||!['ozon.ru','www.ozon.ru'].includes(u.hostname))return null;return u.pathname.match(/^\/product\/(?:[^/]*-)?(\d+)\/?$/)?.[1]||null;}catch{return null;}};
-async function pauseAuto(reason){const {autoQueue:s}=await chrome.storage.local.get('autoQueue');if(s){s.status='paused';s.reason=reason;await chrome.storage.local.set({autoQueue:s});}await chrome.alarms.clear(AUTO_ALARM);return {status:'paused',reason};}
+async function pauseAuto(reason){if(autoTimer!==null){clearTimeout(autoTimer);autoTimer=null;}const {autoQueue:s}=await chrome.storage.local.get('autoQueue');if(s){s.status='paused';s.reason=reason;await chrome.storage.local.set({autoQueue:s});}await chrome.alarms.clear(AUTO_ALARM);return {status:'paused',reason};}
 async function autoQueueAction(m){
  if(m.action==='auto-pause')return pauseAuto('user_paused');
  if(m.action!=='auto-start')return {status:'disabled'};
@@ -26,27 +29,29 @@ async function autoQueueTick(){
   if(s.index>=s.urls.length){s.status='completed';s.finished_at=new Date().toISOString();s.reason='collection_only_complete';await chrome.storage.local.set({autoQueue:s});await chrome.alarms.clear(AUTO_ALARM);return;}
   const expected=buyerSku(s.urls[s.index]);if(!expected)return await pauseAuto('invalid_queue_url');
   if(s.phase==='navigate'){
+   const wait=(s.next_navigation_at||0)-Date.now();if(wait>0){scheduleAutoTick(wait);return;}
    let tab;if(s.tabId===null)tab=await chrome.tabs.create({url:s.urls[s.index],active:false});else tab=await chrome.tabs.update(s.tabId,{url:s.urls[s.index]});
-   s.tabId=tab.id;s.phase='read';s.navigated_at=Date.now();s.prepare_attempts=0;
+   s.tabId=tab.id;s.phase='read';s.navigated_at=Date.now();s.prepare_attempts=0;s.next_navigation_at=s.navigated_at+20000;
    const current=await chrome.storage.local.get('autoQueue');
    if(current.autoQueue?.status!=='running'||current.autoQueue.started_at!==s.started_at)return;
-   await chrome.storage.local.set({autoQueue:s});return;
+   await chrome.storage.local.set({autoQueue:s});scheduleAutoTick(2000);return;
   }
   const tab=await chrome.tabs.get(s.tabId);
-  if(tab.status!=='complete'){if(Date.now()-s.navigated_at>90000)await pauseAuto('page_load_timeout');return;}
+  if(tab.status!=='complete'){if(Date.now()-s.navigated_at>90000)await pauseAuto('page_load_timeout');else scheduleAutoTick(2000);return;}
   const result=(await chrome.scripting.executeScript({target:{tabId:s.tabId},files:['collector.js']}))[0]?.result;
   if(result?.status==='blocked_verification')return await pauseAuto('verification_required');
   if(result?.product_id!==expected||!result?.title)return await pauseAuto('wrong_or_empty_product_page');
   if(!Array.isArray(result.properties))return await pauseAuto('invalid_collector_result');
-  if(!result.properties.length&&(s.prepare_attempts||0)<2){
+  if((!result.properties.length||result.diagnostics?.full_characteristics_loaded===false)&&(s.prepare_attempts||0)<2){
    const prepared=(await chrome.scripting.executeScript({target:{tabId:s.tabId},files:['prepare-characteristics.js']}))[0]?.result;
    if(prepared?.status==='blocked_verification')return await pauseAuto('verification_required');
    if(prepared?.status!=='prepared')return await pauseAuto('cannot_prepare_characteristics');
    const current=await chrome.storage.local.get('autoQueue');
    if(current.autoQueue?.status!=='running'||current.autoQueue.started_at!==s.started_at)return;
    s.prepare_attempts=(s.prepare_attempts||0)+1;s.last_preparation=prepared.action;
-   await chrome.storage.local.set({autoQueue:s});return;
+   await chrome.storage.local.set({autoQueue:s});scheduleAutoTick(2500);return;
   }
+  result.collection_timing={page_elapsed_ms:Date.now()-s.navigated_at,preparation_attempts:s.prepare_attempts||0,captured_at:new Date().toISOString()};
   result.collection_status=result.properties.length?'attributes_read':'partial';
   if(!result.properties.length)result.collection_issue='attributes_missing_after_bounded_preparation';
   // Re-read state after asynchronous browser operations: pause must win over late results.
@@ -57,10 +62,12 @@ async function autoQueueTick(){
   s.counts=s.counts||{pass:0,exclude:0,review:0};s.counts[result.selection_review.decision]++;
   const saved=latest.snapshots||{};saved[expected]=result;s.index++;s.phase='navigate';
   if(s.index===s.urls.length){s.status='completed';s.finished_at=new Date().toISOString();s.reason='collection_only_complete';await chrome.alarms.clear(AUTO_ALARM);}
-  await chrome.storage.local.set({snapshots:saved,autoQueue:s});
+  await chrome.storage.local.set({snapshots:saved,autoQueue:s});if(s.status==='running')scheduleAutoTick(Math.max(1500,(s.next_navigation_at||0)-Date.now()));
  }catch(e){await pauseAuto('browser_or_access_error: '+String(e.message||e).slice(0,180));}
  finally{autoBusy=false;}
 }
 chrome.alarms.onAlarm.addListener(a=>{if(a.name===AUTO_ALARM)return autoQueueTick();});
 chrome.runtime.onStartup.addListener(()=>pauseAuto('browser_restarted_click_start_to_resume'));
 chrome.runtime.onInstalled.addListener(()=>pauseAuto('extension_updated_click_start_to_resume'));
+
+chrome.tabs.onUpdated.addListener((id,change)=>{if(change.status!=='complete')return;chrome.storage.local.get('autoQueue').then(({autoQueue:s})=>{if(s?.status==='running'&&s.phase==='read'&&s.tabId===id)scheduleAutoTick(1500);});});

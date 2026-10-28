@@ -1,11 +1,11 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Ozon 运营采集</title>
 <style>body{font:14px sans-serif;width:370px;padding:12px;line-height:1.5}button{padding:8px;margin:4px}input,textarea{width:95%}pre{white-space:pre-wrap}</style>
-<h3>Ozon 采集与参数工作台 0.4.2</h3>
+<h3>Ozon 采集与参数工作台 0.4.3</h3>
 <label>今日上架目标（仅记录）<input id="target" type="number" min="1" max="1000"></label><button id="save-target">保存今日目标</button>
-<h4>买家端采集</h4><button id="capture-buyer">采集当前商品</button><button id="read-links">读取搜索页链接</button>
+<h4>买家端采集</h4><label>本批最多采集件数<input id="limit" type="number" min="1" max="100" value="5"></label><button id="auto-start">开始自动采集（仅采集）</button><button id="auto-pause">暂停自动采集</button><button id="capture-buyer">采集当前商品</button><button id="read-links">读取搜索页链接</button>
 <textarea id="links" rows="4" placeholder="商品链接，每行一个；可留空使用搜索页链接"></textarea>
 <button id="save-queue">加入队列</button><button id="next">打开下一件待采商品</button>
-<p>按次点击读取已加载页面；遇验证停止。销量、FBS、品牌等未确认时保持待核验，不推断包装数据。</p>
+<p>自动队列每30秒执行一步，串行打开和读取；页面缺参数、验证或访问错误时暂停，不自动重试。销量、FBS、品牌等未确认时保持待核验，不推断包装数据。</p>
 <h4>卖家端参数导出</h4><label>来源SKU提示<input id="sku-hint" inputmode="numeric"></label><button id="capture-form">读取并导出当前页参数</button>
 <p>仅读取已加载字段，不填表、保存或发布；无法阻止页面自身自动保存。缺失选填参数留空，缺失必填参数进入待办。</p>
 <button id="export">导出全部历史采集</button><button id="status">查看目标和进度</button><pre id="result"></pre><script src="popup.js"></script></html>

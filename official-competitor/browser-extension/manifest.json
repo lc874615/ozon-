@@ -1,18 +1,23 @@
 {
   "manifest_version": 3,
   "name": "Ozon 采集与参数工作台",
-  "version": "0.4.2",
-  "description": "用户点击采集买家页、整理待采集队列、导出卖家参数；不自动创建或发布商品。",
+  "version": "0.4.3",
+  "description": "买家端串行队列采集，验证时暂停，完成后停止；另含卖家当前页参数导出。",
   "permissions": [
     "activeTab",
     "scripting",
     "storage",
-    "downloads"
+    "downloads",
+    "alarms"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
     "default_popup": "popup.html"
-  }
+  },
+  "host_permissions": [
+    "https://www.ozon.ru/*",
+    "https://ozon.ru/*"
+  ]
 }

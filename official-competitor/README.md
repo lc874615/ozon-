@@ -1,3 +1,6 @@
+# 当前版本 0.4.3
+用户启动的买家端自动队列采集，完成后停止。使用方法见 [INTEGRATED_CAPTURE.md](INTEGRATED_CAPTURE.md)。不执行后续业务步骤。
+
 # 当前版本 0.4.2
 采集和表单导出已整合，使用说明见 [INTEGRATED_CAPTURE.md](INTEGRATED_CAPTURE.md)。无人值守采集和自动发布尚未实现。
 

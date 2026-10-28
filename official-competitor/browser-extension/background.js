@@ -8,7 +8,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     const run=async file=>{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab?.id)throw new Error('请先打开商品或搜索页面');return (await chrome.scripting.executeScript({target:{tabId:tab.id},files:[file]}))[0]?.result;};
     if(message.action==='export-diagnostics'){
       const {snapshots={},autoQueue=null}=await store.get(['snapshots','autoQueue']);
-      const data={version:chrome.runtime.getManifest().version,autoQueue,observations:Object.values(snapshots).map(d=>({product_id:d.product_id,status:d.status,title:d.title,collection_status:d.collection_status,collection_issue:d.collection_issue,diagnostics:d.diagnostics,properties:d.properties,selection_review:d.selection_review}))};
+      const data={version:chrome.runtime.getManifest().version,autoQueue,observations:Object.values(snapshots).map(d=>({product_id:d.product_id,status:d.status,title:d.title,collection_status:d.collection_status,collection_issue:d.collection_issue,diagnostics:d.diagnostics,source_url:d.source_url,images_count:(d.images||[]).length,price_widget_text:d.price_widget_text,properties:d.properties,selection_review:d.selection_review}))};
       await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-collection-diagnostics.json',saveAs:true});return {status:'diagnostics_exported'};
     }
     if(message.action==='capture-listing-dates'){
@@ -70,7 +70,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
       await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-filtered-observations.json',saveAs:true});
       return {status:'historical_data_exported'};
     }
-    if(message.action==='status'){const {dailyGoal=null,collectionQueue=[],snapshots={},autoQueue=null}=await store.get(['dailyGoal','collectionQueue','snapshots','autoQueue']);return {autoQueue,dailyGoal,queued:collectionQueue.length,collected:Object.keys(snapshots).length,mode:'user_clicked_current_form_export',version:chrome.runtime.getManifest().version,
+    if(message.action==='status'){const {dailyGoal=null,collectionQueue=[],snapshots={},autoQueue=null}=await store.get(['dailyGoal','collectionQueue','snapshots','autoQueue']);const batchIds=(autoQueue?.urls||[]).map(u=>u.match(/(?:-|\/)(\d+)\/?$/)?.[1]);const records=batchIds.map(id=>snapshots[id]).filter(Boolean);const buyerBatchStats={saved:records.length,properties:records.reduce((n,d)=>n+(d.properties||[]).length,0),with_images:records.filter(d=>d.images?.length).length,with_price_text:records.filter(d=>d.price_widget_text).length};return {buyerBatchStats,autoQueue,dailyGoal,queued:collectionQueue.length,collected:Object.keys(snapshots).length,mode:'user_clicked_current_form_export',version:chrome.runtime.getManifest().version,
       automatic_website_requests:'only user-started buyer queue',cookie_access:false,automatic_form_changes:false};}
     return {status:'disabled',reason:'无人值守采集和账号接口操作未启用。'};
   })().then(respond,e=>respond({status:'error',message:String(e.message||e).slice(0,300)}));

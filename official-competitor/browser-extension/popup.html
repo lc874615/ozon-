@@ -1,6 +1,8 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Ozon 运营采集</title>
-<style>body{font:14px sans-serif;width:370px;padding:12px;line-height:1.5}button{padding:8px;margin:4px}input,textarea{width:95%}pre{white-space:pre-wrap}</style>
-<h3>Ozon 采集与参数工作台 0.4.6</h3>
+<style>body{font:14px sans-serif;width:370px;padding:12px;line-height:1.5}button{padding:8px;margin:4px}input,textarea{width:95%}pre{white-space:pre-wrap}#live-progress{background:#eef5ff;padding:12px;border-radius:8px;margin-bottom:14px}progress{display:block;width:100%;height:20px;margin:8px 0}#progress-counts{font-weight:bold}#progress-stage,#progress-data{margin:8px 0}#progress-updated{color:#555}#notice{color:#124d85}</style>
+<h3>Ozon 采集与参数工作台 0.4.7</h3>
+<section id="live-progress" aria-label="采集实时进度"><strong id="progress-title">正在读取进度…</strong><progress id="batch-progress" value="0" max="1" aria-label="本批已处理进度"></progress><div id="progress-numbers"></div><div id="progress-counts"></div><div id="progress-stage"></div><div id="progress-data"></div><small id="progress-history"></small><div id="progress-goal"></div><small id="progress-updated"></small></section>
+<p id="notice" role="status" aria-live="polite"></p>
 <label>今日上架目标（仅记录）<input id="target" type="number" min="1" max="1000"></label><button id="save-target">保存今日目标</button>
 <h4>启动前筛选（官方近28天）</h4>
 <label>只选此日期之后上架（不含当天，可留空）<input id="after-date" type="date"></label>
@@ -11,7 +13,7 @@
 <p>保留FBS、明确无品牌规则。日期、金额或销量无可靠数据时进入待核验；不把评论数当销量，不把售价乘销量冒充销售额。筛选数量不保证等于本批访问数量。</p><button id="capture-listing-dates">读取官方分析页已显示的上架日期</button><p>在官方分析表格页使用；仅按明确SKU与上架日期列匹配，页面无日期列时不能补齐。</p><button id="save-filters">保存筛选条件</button><h4>买家端采集</h4><label>本批最多采集件数<input id="limit" type="number" min="1" max="100" value="5"></label><button id="auto-start">开始自动采集（仅采集）</button><button id="auto-pause">暂停自动采集</button><button id="capture-buyer">采集当前商品</button><button id="read-links">读取搜索页链接</button>
 <textarea id="links" rows="4" placeholder="商品链接，每行一个；可留空使用搜索页链接"></textarea>
 <button id="save-queue">加入队列</button><button id="next">打开下一件待采商品</button>
-<p>自动队列每30秒执行一步，串行打开和读取；页面缺参数、验证或访问错误时暂停，不自动重试。销量、FBS、品牌等未确认时保持待核验，不推断包装数据。</p>
+<p>自动队列每30秒执行一步，串行打开和读取；缺参数时有限展开后继续并标待核验；验证或访问错误时暂停。销量、FBS、品牌等未确认时保持待核验，不推断包装数据。</p>
 <h4>卖家端参数导出</h4><label>来源SKU提示<input id="sku-hint" inputmode="numeric"></label><button id="capture-form">读取并导出当前页参数</button>
 <p>仅读取已加载字段，不填表、保存或发布；无法阻止页面自身自动保存。缺失选填参数留空，缺失必填参数进入待办。</p>
-<button id="export">导出筛选通过商品</button><button id="export-diagnostics">导出采集诊断</button><button id="status">查看目标和进度</button><pre id="result"></pre><script src="popup.js"></script></html>
+<button id="export">导出筛选通过商品</button><button id="export-diagnostics">导出采集诊断</button><button id="status">查看目标和进度</button><details><summary>技术详情（排查时查看）</summary><pre id="result"></pre></details><script src="progress-view.js"></script><script src="popup.js"></script></html>

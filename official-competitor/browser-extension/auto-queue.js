@@ -36,9 +36,10 @@ async function autoQueueTick(){
    if(current.autoQueue?.status!=='running'||current.autoQueue.started_at!==s.started_at)return;
    await chrome.storage.local.set({autoQueue:s});scheduleAutoTick(2000);return;
   }
+  await syncSellerVisible(expected);
   const tab=await chrome.tabs.get(s.tabId);
   if(tab.status!=='complete'){if(Date.now()-s.navigated_at>90000)await pauseAuto('page_load_timeout');else scheduleAutoTick(2000);return;}
-  const result=(await chrome.scripting.executeScript({target:{tabId:s.tabId},files:['collector.js']}))[0]?.result;
+  const result=(await chrome.scripting.executeScript({target:{tabId:s.tabId},files:['delivery-reference.js','collector.js']}))[0]?.result;
   if(result?.status==='blocked_verification')return await pauseAuto('verification_required');
   if(result?.product_id!==expected||!result?.title)return await pauseAuto('wrong_or_empty_product_page');
   if(!Array.isArray(result.properties))return await pauseAuto('invalid_collector_result');
@@ -55,9 +56,10 @@ async function autoQueueTick(){
   result.collection_status=result.properties.length?'attributes_read':'partial';
   if(!result.properties.length)result.collection_issue='attributes_missing_after_bounded_preparation';
   // Re-read state after asynchronous browser operations: pause must win over late results.
-  const latest=await chrome.storage.local.get(['autoQueue','snapshots','listingDateEvidence']);
+  const latest=await chrome.storage.local.get(['autoQueue','snapshots','listingDateEvidence','sellerEvidence']);
   if(latest.autoQueue?.status!=='running'||latest.autoQueue.started_at!==s.started_at)return;
-  result.selection_review=evaluateCaptureFilters(withListingEvidence(result,latest.listingDateEvidence||{}),s.filters);
+  result.seller_properties=(latest.sellerEvidence||{})[expected]||[];
+  result.selection_review=evaluateCaptureFilters(withListingEvidence(withSellerEvidence(result,latest.sellerEvidence||{}),latest.listingDateEvidence||{}),s.filters);
   if(result.collection_status==='partial'){result.selection_review.decision='review';result.selection_review.checks.push({field:'loaded_attributes',state:'review',evidence:null});}
   s.counts=s.counts||{pass:0,exclude:0,review:0};s.counts[result.selection_review.decision]++;
   const saved=latest.snapshots||{};saved[expected]=result;s.index++;s.phase='navigate';

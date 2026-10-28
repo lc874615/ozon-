@@ -9,7 +9,7 @@ function progressModel(data){
   current:s?.status==='running'&&done<total?`正在处理第 ${done+1} 件，共 ${total} 件`:'',
   queued:data.queued||0,collected:data.collected||0,
   goal:data.dailyGoal?.target?`今日上架目标：${data.dailyGoal.target} 件（仅记录；本次只采集）`:'本次只采集，不执行上架',
-  version:data.version||'',stats:data.buyerBatchStats||null};
+  version:data.version||'',sellerSync:data.sellerSync||null,stats:data.buyerBatchStats||null};
 }
 function renderProgress(data){
  const m=progressModel(data);document.getElementById('progress-title').textContent=m.title;
@@ -19,6 +19,7 @@ function renderProgress(data){
  document.getElementById('progress-stage').textContent=[m.current,m.stage].filter(Boolean).join('；');
  document.getElementById('progress-history').textContent=`队列 ${m.queued} 件 · 历史保存 ${m.collected} 件`;
  document.getElementById('progress-goal').textContent=m.goal;
+ const seller=m.sellerSync;document.getElementById('progress-seller').textContent=seller?`卖家端：已检查 ${seller.tabs_found||0} 个后台标签；分析行与包装字段覆盖请查看诊断。`:'卖家端：尚未同步；请在同一浏览器打开分析页，包装参数页需确认来源SKU';
  const stats=m.stats;
  document.getElementById('progress-data').textContent=stats?`本批买家端：已保存 ${stats.saved} 件，参数共 ${stats.properties} 项；有图片 ${stats.with_images} 件，有价格展示文本 ${stats.with_price_text} 件。图片和价格展示不等于筛选已通过。`:'';
  document.getElementById('progress-updated').textContent='本地进度更新：'+new Date().toLocaleTimeString('zh-CN',{timeZone:'Asia/Shanghai'})+'（弹窗打开时每秒刷新）';

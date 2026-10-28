@@ -56,6 +56,9 @@ async function collectOzonSnapshot() {
   stateWidgets.filter(w=>/^state-web(?:Short)?Characteristics/.test(w.id)).forEach(w=>visit(w.data));
   const gallery=document.querySelector('[data-widget="webGallery"]');
   const images=[...new Set([...(gallery?.querySelectorAll('img') || [])].map(i=>i.currentSrc||i.src).filter(u=>/^https:\/\//.test(u)))];
+  const deliveryTexts=[...document.querySelectorAll('[data-widget*="Delivery"],[data-widget*="Shipping"]')].map(el=>clean(el.innerText)).filter(Boolean).slice(0,10);
+  const delivery=typeof deliveryReference==='function'?deliveryReference(deliveryTexts):{minimum_days:null,evidence:[],actual_fulfillment_scheme_verified:false};
+  if(delivery.minimum_days!==null)add('参考最短送达天数',String(delivery.minimum_days),'buyer_delivery_reference');
   const priceText=clean(document.querySelector('[data-widget="webPrice"]')?.innerText);
   const id=location.pathname.match(/\/product\/(?:[^/]*-)?(\d+)(?:\/|$)/)?.[1] || null;
   return {schema_version:1, source:'ozon_buyer_browser_extension', source_url:location.origin+location.pathname,
@@ -63,6 +66,7 @@ async function collectOzonSnapshot() {
     status:properties.length?'attributes_observed':'attributes_missing', properties, images,
     price_widget_text:priceText, price_type_verified:false,
     characteristics_text:clean(characteristics?.innerText).slice(0,30000),
+    delivery_observation:{texts:deliveryTexts,...delivery},
     diagnostics:{ready_state:document.readyState,characteristics_found:!!characteristics,full_characteristics_loaded:!!characteristics&&characteristics.querySelectorAll('dt,tr').length>0,short_characteristics_text:clean(shortCharacteristics?.innerText).slice(0,5000),short_characteristics_html:shortCharacteristics?.innerHTML.slice(0,12000)||null,definition_terms:root.querySelectorAll('dt').length,definition_values:root.querySelectorAll('dd').length,price_widget_html:document.querySelector('[data-widget="webPrice"]')?.innerHTML.slice(0,12000)||null,product_widget_names:[...new Set([...document.querySelectorAll('[data-widget]')].map(el=>el.getAttribute('data-widget')).filter(n=>/Characteristics|ProductHeading|Price|Gallery/.test(n)))].slice(0,30)},
     widget_states:stateWidgets, packaging_data_verified:false};
 }

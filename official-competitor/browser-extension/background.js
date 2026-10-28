@@ -1,6 +1,31 @@
 // Local user-clicked export only: no website requests, cookies, or automatic actions.
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   (async()=>{
+    const store=chrome.storage.local;
+    const validLink=raw=>{try{const u=new URL(raw);return u.protocol==='https:'&&['ozon.ru','www.ozon.ru'].includes(u.hostname)&&/^\/product\/(?:[^/]*-)?\d+\/?$/.test(u.pathname)?u.origin+u.pathname:null;}catch{return null;}};
+    const run=async file=>{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab?.id)throw new Error('请先打开商品或搜索页面');return (await chrome.scripting.executeScript({target:{tabId:tab.id},files:[file]}))[0]?.result;};
+    if(message.action==='save-target'){
+      const n=Number(message.target);if(!Number.isInteger(n)||n<1||n>1000)throw new Error('目标请输入1至1000');
+      await store.set({dailyGoal:{target:n,date:new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Shanghai'}),published_verified:0}});
+      return {status:'target_saved',target:n,note:'仅记录目标，尚未启动自动上架或发布'};
+    }
+    if(message.action==='capture-buyer'){
+      const data=await run('collector.js');if(!data?.product_id||data.status==='blocked_verification')return data||{status:'empty'};
+      const {snapshots={}}=await store.get('snapshots');snapshots[data.product_id]=data;
+      await store.set({snapshots});return {status:data.status,sku:data.product_id,properties:data.properties.length,collected:Object.keys(snapshots).length,packaging_verified:false};
+    }
+    if(message.action==='read-links'||message.action==='save-queue'){
+      const raw=message.action==='read-links'?await run('link-reader.js'):String(message.links||'').split(/\s+/);
+      const clean=[...new Set(raw.map(validLink).filter(Boolean))];
+      const {collectionQueue=[]}=await store.get('collectionQueue');const queue=[...new Set([...collectionQueue,...clean])].slice(0,1000);
+      await store.set({collectionQueue:queue});return {status:'queue_saved',total:queue.length};
+    }
+    if(message.action==='next'){
+      const {collectionQueue=[],snapshots={}}=await store.get(['collectionQueue','snapshots']);
+      const next=collectionQueue.map(validLink).filter(Boolean).find(u=>!snapshots[u.match(/(?:-|\/)(\d+)\/?$/)[1]]);
+      if(!next)return {status:'queue_complete_or_empty'};
+      await chrome.tabs.create({url:next});return {status:'opened_next',note:'加载完成后点击采集当前商品；遇验证请手动处理'};
+    }
     if(message.action==='capture-form'){
       const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
       if(!tab?.id)throw new Error('请在商品参数页点击扩展按钮');
@@ -27,9 +52,9 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
       await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-historical-observations.json',saveAs:true});
       return {status:'historical_data_exported'};
     }
-    if(message.action==='status')return {mode:'user_clicked_current_form_export',version:chrome.runtime.getManifest().version,
-      automatic_website_requests:false,cookie_access:false,automatic_form_changes:false};
-    return {status:'disabled',reason:'批量采集和账号接口操作未启用。'};
+    if(message.action==='status'){const {dailyGoal=null,collectionQueue=[],snapshots={}}=await store.get(['dailyGoal','collectionQueue','snapshots']);return {dailyGoal,queued:collectionQueue.length,collected:Object.keys(snapshots).length,mode:'user_clicked_current_form_export',version:chrome.runtime.getManifest().version,
+      automatic_website_requests:false,cookie_access:false,automatic_form_changes:false};}
+    return {status:'disabled',reason:'无人值守采集和账号接口操作未启用。'};
   })().then(respond,e=>respond({status:'error',message:String(e.message||e).slice(0,300)}));
   return true;
 });

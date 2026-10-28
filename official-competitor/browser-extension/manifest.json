@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Ozon 当前商品参数导出",
-  "version": "0.4.1",
-  "description": "用户点击后读取当前商品表单并导出JSON。无Cookie权限、持久网站权限或自动账号请求；不会填表或提交。",
+  "name": "Ozon 采集与参数工作台",
+  "version": "0.4.2",
+  "description": "用户点击采集买家页、整理待采集队列、导出卖家参数；不自动创建或发布商品。",
   "permissions": [
     "activeTab",
     "scripting",

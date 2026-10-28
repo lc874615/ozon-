@@ -1,9 +1,11 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>当前商品参数导出</title>
-<style>body{font:14px sans-serif;width:350px;padding:12px;line-height:1.6}button{padding:8px;margin:5px}pre{white-space:pre-wrap}input{width:95%;padding:6px}</style>
-<h3>导出当前商品参数</h3>
-<p>只在你点击时读取当前页面已加载字段。不切换分组、不填表、不发送额外页面请求、不点保存或发布。</p>
-<label for="sku-hint">来源SKU（可选提示，不代表自动验证）</label><input id="sku-hint" inputmode="numeric" placeholder="输入本次复制来源SKU">
-<button id="capture-form">读取并导出当前页参数</button>
-<p>其他标签、未加载行、iframe内容不保证包含。页面自己的草稿自动保存无法由本工具阻止。</p>
-<button id="export">导出历史资料</button><button id="status">查看状态</button>
-<pre id="result"></pre><script src="popup.js"></script></html>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Ozon 运营采集</title>
+<style>body{font:14px sans-serif;width:370px;padding:12px;line-height:1.5}button{padding:8px;margin:4px}input,textarea{width:95%}pre{white-space:pre-wrap}</style>
+<h3>Ozon 采集与参数工作台 0.4.2</h3>
+<label>今日上架目标（仅记录）<input id="target" type="number" min="1" max="1000"></label><button id="save-target">保存今日目标</button>
+<h4>买家端采集</h4><button id="capture-buyer">采集当前商品</button><button id="read-links">读取搜索页链接</button>
+<textarea id="links" rows="4" placeholder="商品链接，每行一个；可留空使用搜索页链接"></textarea>
+<button id="save-queue">加入队列</button><button id="next">打开下一件待采商品</button>
+<p>按次点击读取已加载页面；遇验证停止。销量、FBS、品牌等未确认时保持待核验，不推断包装数据。</p>
+<h4>卖家端参数导出</h4><label>来源SKU提示<input id="sku-hint" inputmode="numeric"></label><button id="capture-form">读取并导出当前页参数</button>
+<p>仅读取已加载字段，不填表、保存或发布；无法阻止页面自身自动保存。缺失选填参数留空，缺失必填参数进入待办。</p>
+<button id="export">导出全部历史采集</button><button id="status">查看目标和进度</button><pre id="result"></pre><script src="popup.js"></script></html>

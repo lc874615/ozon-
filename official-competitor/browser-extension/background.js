@@ -1,16 +1,26 @@
 // User-started buyer queue; no seller API calls or listing actions.
-importScripts('selection-filters.js','seller-sync.js','auto-queue.js');
+importScripts('attention.js','selection-filters.js','seller-sync.js','auto-queue.js','seller-copy-runner.js');
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   (async()=>{
     const store=chrome.storage.local;
+    if(message.action==='arm-seller-copy')return armSellerCopy();
+    if(message.action==='start-seller-copy')return startSellerCopy(message.sku_hint);
+    if(message.action==='start-seller-copy-batch')return startSellerCopyBatch(message.limit);
+    if(message.action==='pause-seller-copy')return stopSellerCopy('user_paused');
+    if(message.action==='resume-seller-copy'){
+      const {sellerCopyJob:j,sellerCopyBatch:b}=await store.get(['sellerCopyJob','sellerCopyBatch']);if(!j||j.status!=='paused')throw new Error('没有暂停的卖家任务');
+      if(!/verification|access|denied|403|429/i.test(j.reason||''))throw new Error('此暂停原因需要先检查诊断，不能自动重试创建/删除');
+      if(/in_flight|uncertain/.test(j.phase))throw new Error('上次操作结果不明确，不能重复执行');
+      j.status='running';j.reason=null;j.phase_at=Date.now();if(b?.status==='paused')b.status='running';await store.set({sellerCopyJob:j,...(b?{sellerCopyBatch:b}:{}),verificationAttention:null});await chrome.action.setBadgeText({text:''});await chrome.alarms.create(COPY_ALARM,{periodInMinutes:0.5});wakeSellerCopy(0);const {autoQueue:q}=await store.get('autoQueue');if(q?.status==='paused'&&q.reason==='seller_verification_or_task_paused'){q.status='running';q.reason=null;await store.set({autoQueue:q});await chrome.alarms.create(AUTO_ALARM,{periodInMinutes:0.5});scheduleAutoTick(2000);}return {status:'seller_copy_resumed'};
+    }
     if(message.action==='sync-seller')return syncSellerVisible();
     if(message.action==='bind-seller-form')return bindSellerForm(message.sku_hint);
     if(message.action.startsWith('auto-'))return await autoQueueAction(message);
     const validLink=raw=>{try{const u=new URL(raw);return u.protocol==='https:'&&['ozon.ru','www.ozon.ru'].includes(u.hostname)&&/^\/product\/(?:[^/]*-)?\d+\/?$/.test(u.pathname)?u.origin+u.pathname:null;}catch{return null;}};
     const run=async file=>{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab?.id)throw new Error('请先打开商品或搜索页面');return (await chrome.scripting.executeScript({target:{tabId:tab.id},files:file==='collector.js'?['delivery-reference.js','collector.js']:[file]}))[0]?.result;};
     if(message.action==='export-diagnostics'){
-      const {snapshots={},autoQueue=null,sellerSync=null,sellerEvidence={}}=await store.get(['snapshots','autoQueue','sellerSync','sellerEvidence']);
-      const data={version:chrome.runtime.getManifest().version,autoQueue,sellerSync,sellerEvidence,observations:Object.values(snapshots).map(d=>({product_id:d.product_id,status:d.status,title:d.title,collection_status:d.collection_status,collection_issue:d.collection_issue,captured_at:d.captured_at,collection_timing:d.collection_timing,diagnostics:d.diagnostics,seller_properties:d.seller_properties,delivery_observation:d.delivery_observation,source_url:d.source_url,images_count:(d.images||[]).length,price_widget_text:d.price_widget_text,properties:d.properties,selection_review:d.selection_review}))};
+      const {snapshots={},autoQueue=null,sellerSync=null,sellerEvidence={},sellerCopyJob=null,sellerCopyBatch=null,sellerCopyLedger=[]}=await store.get(['snapshots','autoQueue','sellerSync','sellerEvidence','sellerCopyJob','sellerCopyBatch','sellerCopyLedger']);
+      const data={version:chrome.runtime.getManifest().version,autoQueue,sellerSync,sellerEvidence,sellerCopyJob,sellerCopyBatch,sellerCopyLedger,observations:Object.values(snapshots).map(d=>({product_id:d.product_id,status:d.status,title:d.title,collection_status:d.collection_status,collection_issue:d.collection_issue,captured_at:d.captured_at,collection_timing:d.collection_timing,diagnostics:d.diagnostics,seller_properties:d.seller_properties,delivery_observation:d.delivery_observation,source_url:d.source_url,images_count:(d.images||[]).length,price_widget_text:d.price_widget_text,properties:d.properties,selection_review:d.selection_review}))};
       await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-collection-diagnostics.json',saveAs:true});return {status:'diagnostics_exported'};
     }
     if(message.action==='capture-listing-dates'){
@@ -72,7 +82,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
       await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-filtered-observations.json',saveAs:true});
       return {status:'historical_data_exported'};
     }
-    if(message.action==='status'){const {dailyGoal=null,collectionQueue=[],snapshots={},autoQueue=null,sellerSync=null}=await store.get(['dailyGoal','collectionQueue','snapshots','autoQueue','sellerSync']);const batchIds=(autoQueue?.urls||[]).map(u=>u.match(/(?:-|\/)(\d+)\/?$/)?.[1]);const records=batchIds.map(id=>snapshots[id]).filter(Boolean);const buyerBatchStats={saved:records.length,properties:records.reduce((n,d)=>n+(d.properties||[]).length,0),with_images:records.filter(d=>d.images?.length).length,with_price_text:records.filter(d=>d.price_widget_text).length};return {sellerSync,buyerBatchStats,autoQueue,dailyGoal,queued:collectionQueue.length,collected:Object.keys(snapshots).length,mode:'user_clicked_current_form_export',version:chrome.runtime.getManifest().version,
+    if(message.action==='status'){const {dailyGoal=null,collectionQueue=[],snapshots={},autoQueue=null,sellerSync=null,sellerCopyJob=null,sellerCopyBatch=null,verificationAttention=null}=await store.get(['dailyGoal','collectionQueue','snapshots','autoQueue','sellerSync','sellerCopyJob','sellerCopyBatch','verificationAttention']);const batchIds=(autoQueue?.urls||[]).map(u=>u.match(/(?:-|\/)(\d+)\/?$/)?.[1]);const records=batchIds.map(id=>snapshots[id]).filter(Boolean);const buyerBatchStats={saved:records.length,properties:records.reduce((n,d)=>n+(d.properties||[]).length,0),with_images:records.filter(d=>d.images?.length).length,with_price_text:records.filter(d=>d.price_widget_text).length};return {sellerCopyJob,sellerCopyBatch,verificationAttention,sellerSync,buyerBatchStats,autoQueue,dailyGoal,queued:collectionQueue.length,collected:Object.keys(snapshots).length,mode:'user_clicked_current_form_export',version:chrome.runtime.getManifest().version,
       automatic_website_requests:'only user-started buyer queue',cookie_access:false,automatic_form_changes:false};}
     return {status:'disabled',reason:'无人值守采集和账号接口操作未启用。'};
   })().then(respond,e=>respond({status:'error',message:String(e.message||e).slice(0,300)}));

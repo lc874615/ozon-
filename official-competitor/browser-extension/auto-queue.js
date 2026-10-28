@@ -5,7 +5,7 @@ let autoBusy=false,autoTimer=null;
 function scheduleAutoTick(ms=1500){if(autoTimer!==null)clearTimeout(autoTimer);autoTimer=setTimeout(()=>{autoTimer=null;autoQueueTick();},Math.max(0,ms));}
 
 const buyerSku=raw=>{try{const u=new URL(raw);if(u.protocol!=='https:'||!['ozon.ru','www.ozon.ru'].includes(u.hostname))return null;return u.pathname.match(/^\/product\/(?:[^/]*-)?(\d+)\/?$/)?.[1]||null;}catch{return null;}};
-async function pauseAuto(reason){if(autoTimer!==null){clearTimeout(autoTimer);autoTimer=null;}const {autoQueue:s}=await chrome.storage.local.get('autoQueue');if(s){s.status='paused';s.reason=reason;await chrome.storage.local.set({autoQueue:s});}await chrome.alarms.clear(AUTO_ALARM);return {status:'paused',reason};}
+async function pauseAuto(reason){if(autoTimer!==null){clearTimeout(autoTimer);autoTimer=null;}const {autoQueue:s}=await chrome.storage.local.get('autoQueue');if(s){s.status='paused';s.reason=reason;await chrome.storage.local.set({autoQueue:s});}await chrome.alarms.clear(AUTO_ALARM);if(!reason.startsWith('seller_')&&/verification|access|denied|403|429/i.test(reason))await showVerificationAttention(s?.tabId,'buyer',reason);return {status:'paused',reason};}
 async function autoQueueAction(m){
  if(m.action==='auto-pause')return pauseAuto('user_paused');
  if(m.action!=='auto-start')return {status:'disabled'};
@@ -52,6 +52,9 @@ async function autoQueueTick(){
    s.prepare_attempts=(s.prepare_attempts||0)+1;s.last_preparation=prepared.action;
    await chrome.storage.local.set({autoQueue:s});scheduleAutoTick(2500);return;
   }
+  const sellerFlow=await ensureSellerCopyForSku(expected);
+  if(sellerFlow.status==='waiting'){scheduleAutoTick(2000);return;}
+  if(sellerFlow.status==='paused')return await pauseAuto('seller_verification_or_task_paused');
   result.collection_timing={page_elapsed_ms:Date.now()-s.navigated_at,preparation_attempts:s.prepare_attempts||0,captured_at:new Date().toISOString()};
   result.collection_status=result.properties.length?'attributes_read':'partial';
   if(!result.properties.length)result.collection_issue='attributes_missing_after_bounded_preparation';

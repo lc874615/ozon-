@@ -12,6 +12,8 @@ function progressModel(data){
   version:data.version||'',sellerSync:data.sellerSync||null,stats:data.buyerBatchStats||null};
 }
 function renderProgress(data){
+ const sj=data.sellerCopyJob,sb=data.sellerCopyBatch;
+ const copyView=document.getElementById('seller-copy-progress');if(copyView)copyView.textContent=sj?`卖家流程：${{running:'运行中',paused:'已暂停',completed:'完成且删除已确认',skipped:'已跳过'}[sj.status]||sj.status}；SKU ${sj.sku}；${sb?`本批已处理 ${sb.index}/${sb.skus.length}；`:''}${sj.cleanup_required?'注意：此件草稿可能仍保留；':''}步骤 ${{init:'检查复制页',search:'输入SKU搜索',copy:'核对并复制',copy_in_flight:'等待复制结果',read:'读取包装参数',delete:'准备清理本次草稿',delete_in_flight:'等待删除结果',verify:'确认删除结果',cleanup_needs_ui_adapter:'清理入口未识别',copy_uncertain:'复制结果待核实'}[sj.phase]||'待排查'}${sj.reason?'；原因见诊断':''}`:'卖家复制流程尚未启动';
  const m=progressModel(data);document.getElementById('progress-title').textContent=m.title;
  const bar=document.getElementById('batch-progress');bar.max=m.total||1;bar.value=m.done;
  document.getElementById('progress-numbers').textContent=`已处理 ${m.done} / ${m.total} 件（${m.percent}%）`;

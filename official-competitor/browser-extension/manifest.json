@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Ozon 采集与参数工作台",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "买家端串行队列采集，验证时暂停，完成后停止；另含卖家当前页参数导出。",
   "permissions": [
     "activeTab",
     "scripting",
     "storage",
     "downloads",
-    "alarms"
+    "alarms",
+    "notifications"
   ],
   "background": {
     "service_worker": "background.js"

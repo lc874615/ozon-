@@ -1,0 +1,16 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');const c={};vm.createContext(c);vm.runInContext(fs.readFileSync('browser-extension/selection-filters.js','utf8'),c);
+const f={after_date:'2026-01-01',amount_min:'10',amount_max:'20',min_sold28:6};
+const data={properties:[{name:'履约方式',value:'FBS'},{name:'品牌',value:'无品牌'},{name:'近28天销量',value:'6'},{name:'上架日期',value:'2026-01-02'},{name:'售价（人民币）',value:'10'}]};
+const result=d=>c.evaluateCaptureFilters(d,f);
+assert.equal(result(data).decision,'pass');
+let d=structuredClone(data);d.properties[3].value='2026-01-01';assert.equal(result(d).decision,'exclude');
+d=structuredClone(data);d.properties[4].value='20';assert.equal(result(d).decision,'pass');d.properties[4].value='20.01';assert.equal(result(d).decision,'exclude');
+d=structuredClone(data);d.properties[2].value='5';assert.equal(result(d).decision,'exclude');
+d=structuredClone(data);d.properties[2].name='Отзывы';assert.equal(result(d).decision,'review');
+d=structuredClone(data);d.properties[4].name='Sale price, RUB';assert.equal(result(d).decision,'review');
+d=structuredClone(data);d.properties[4].value='约10';assert.equal(result(d).decision,'review');
+d=structuredClone(data);d.properties.push({name:'售价（人民币）',value:'19'});assert.equal(result(d).decision,'review');
+d=structuredClone(data);d.properties[1].value='';assert.equal(result(d).decision,'review');
+assert.throws(()=>c.parseFilterSettings({...f,amount_min:21}));assert.throws(()=>c.parseFilterSettings({...f,min_sold28:5}));assert.throws(()=>c.parseFilterSettings({...f,after_date:'2026-02-30'}));
+assert.equal(c.evaluateCaptureFilters(data,{...f,amount_metric:'revenue28'}).decision,'review');
+console.log('PASS exact date/price/volume boundaries, no RUB substitution, missing/conflicting evidence review, no review-count or revenue inference');

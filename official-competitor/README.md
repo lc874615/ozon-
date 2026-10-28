@@ -1,3 +1,6 @@
+# 当前版本 0.4.4
+自动采集前可配置上架日期、人民币单件售价区间和近28天最低销量。未知证据待核验。详见 [INTEGRATED_CAPTURE.md](INTEGRATED_CAPTURE.md)。
+
 # 当前版本 0.4.3
 用户启动的买家端自动队列采集，完成后停止。使用方法见 [INTEGRATED_CAPTURE.md](INTEGRATED_CAPTURE.md)。不执行后续业务步骤。
 

@@ -1,8 +1,14 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Ozon 运营采集</title>
 <style>body{font:14px sans-serif;width:370px;padding:12px;line-height:1.5}button{padding:8px;margin:4px}input,textarea{width:95%}pre{white-space:pre-wrap}</style>
-<h3>Ozon 采集与参数工作台 0.4.3</h3>
+<h3>Ozon 采集与参数工作台 0.4.4</h3>
 <label>今日上架目标（仅记录）<input id="target" type="number" min="1" max="1000"></label><button id="save-target">保存今日目标</button>
-<h4>买家端采集</h4><label>本批最多采集件数<input id="limit" type="number" min="1" max="100" value="5"></label><button id="auto-start">开始自动采集（仅采集）</button><button id="auto-pause">暂停自动采集</button><button id="capture-buyer">采集当前商品</button><button id="read-links">读取搜索页链接</button>
+<h4>启动前筛选（官方近28天）</h4>
+<label>只选此日期之后上架（不含当天，可留空）<input id="after-date" type="date"></label>
+<label>金额口径<select id="amount-metric"><option value="unit_price">单件售价（人民币）</option><option value="revenue28">近28天累计销售额（人民币）</option></select></label>
+<label>金额下限（含，可留空）<input id="amount-min" type="number" min="0" step="0.01"></label>
+<label>金额上限（含，可留空）<input id="amount-max" type="number" min="0" step="0.01"></label>
+<label>近28天最低销量（含，至少6）<input id="min-sold28" type="number" min="6" step="1" value="6"></label>
+<p>保留FBS、明确无品牌规则。日期、金额或销量无可靠数据时进入待核验；不把评论数当销量，不把售价乘销量冒充销售额。筛选数量不保证等于本批访问数量。</p><button id="save-filters">保存筛选条件</button><h4>买家端采集</h4><label>本批最多采集件数<input id="limit" type="number" min="1" max="100" value="5"></label><button id="auto-start">开始自动采集（仅采集）</button><button id="auto-pause">暂停自动采集</button><button id="capture-buyer">采集当前商品</button><button id="read-links">读取搜索页链接</button>
 <textarea id="links" rows="4" placeholder="商品链接，每行一个；可留空使用搜索页链接"></textarea>
 <button id="save-queue">加入队列</button><button id="next">打开下一件待采商品</button>
 <p>自动队列每30秒执行一步，串行打开和读取；页面缺参数、验证或访问错误时暂停，不自动重试。销量、FBS、品牌等未确认时保持待核验，不推断包装数据。</p>

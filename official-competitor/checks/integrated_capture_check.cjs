@@ -1,8 +1,8 @@
 const vm=require('vm'),fs=require('fs'),assert=require('assert/strict');
 let handler,script='collector.js',opened=[];
-const state={snapshots:{'123':{product_id:'123',old:true}}};
+const state={captureFilters:{},snapshots:{'123':{product_id:'123',old:true}}};
 const chrome={runtime:{getManifest:()=>({version:'0.4.2'}),onMessage:{addListener:f=>handler=f}},storage:{local:{get:async k=>Object.fromEntries((Array.isArray(k)?k:[k]).map(x=>[x,state[x]])),set:async x=>Object.assign(state,x)}},tabs:{query:async()=>[{id:7}],create:async x=>opened.push(x)},scripting:{executeScript:async r=>{script=r.files[0];return [{result:script==='link-reader.js'?['https://www.ozon.ru/product/test-123/','https://www.ozon.ru/product/456/']:{product_id:'456',status:'attributes_observed',properties:[{name:'Color',value:'Black'}]}}]}},downloads:{download:async()=>{}}};
-vm.runInNewContext(fs.readFileSync('browser-extension/background.js','utf8'),{chrome,URL,Date,TextEncoder,importScripts:()=>{}});
+const context={chrome,URL,Date,TextEncoder,importScripts:()=>{}};vm.createContext(context);vm.runInContext(fs.readFileSync('browser-extension/selection-filters.js','utf8'),context);vm.runInContext(fs.readFileSync('browser-extension/background.js','utf8'),context);
 const call=m=>new Promise(r=>handler(m,{},r));
 (async()=>{
  assert.equal((await call({action:'save-target',target:0})).status,'error');

@@ -1,0 +1,35 @@
+// Evaluate only explicit, labelled observations. Missing evidence is review, never pass.
+function parseFilterSettings(raw={}){
+ const date=String(raw.after_date||'');
+ if(date&&(!/^\d{4}-\d{2}-\d{2}$/.test(date)||new Date(date+'T00:00:00Z').toISOString().slice(0,10)!==date))throw new Error('请输入有效上架日期');
+ const number=(v,name)=>{if(v===undefined||v===null||String(v).trim()==='')return null;const n=Number(v);if(!Number.isFinite(n)||n<0)throw new Error(name+'必须是非负数');return n;};
+ const min=number(raw.amount_min,'金额下限'),max=number(raw.amount_max,'金额上限');
+ if(min!==null&&max!==null&&min>max)throw new Error('金额下限不能高于上限');
+ const sales=number(raw.min_sold28??6,'最低销量');if(sales===null||!Number.isInteger(sales)||sales<6)throw new Error('最低销量须为至少6件的整数（保留近28天销量大于5规则）');
+ const mode=raw.amount_metric||'unit_price';if(!['unit_price','revenue28'].includes(mode))throw new Error('金额口径无效');
+ return {after_date:date||null,amount_min:min,amount_max:max,amount_metric:mode,min_sold28:sales,period_days:28,currency:'CNY',fbs_only:true,unbranded_only:true};
+}
+function evaluateCaptureFilters(data,settings){
+ const f=parseFilterSettings(settings),checks=[],props=data.properties||[];
+ const norm=v=>String(v||'').trim().toLowerCase().replace(/\s+/g,' ');
+ const values=names=>props.filter(p=>names.includes(norm(p.name))).map(p=>({value:String(p.value).trim(),source:p.source||'labelled_product_property',label:p.name}));
+ const one=names=>{const a=values(names);return a.length&&new Set(a.map(x=>norm(x.value))).size===1?a[0]:null;};
+ const push=(field,state,evidence=null)=>checks.push({field,state,evidence});
+ let e=one(['схема продаж','sales schema','履约方式','发货方式']);push('fbs',!e?'review':norm(e.value)==='fbs'?'pass':['fbo','rfbs','real fbs'].includes(norm(e.value))?'exclude':'review',e);
+ e=one(['бренд','brand','品牌']);push('unbranded',!e||!e.value?'review':['без бренда','no brand','无品牌'].includes(norm(e.value))?'pass':'exclude',e);
+ const digits=s=>/^\d+$/.test(s)?Number(s):null;
+ e=one(['продано за 28 дней, шт','sales in 28 days','销量（近28天）','近28天销量']);
+ const sold=e?digits(e.value):null;push('sold28',sold===null?'review':sold>=f.min_sold28?'pass':'exclude',e);
+ if(f.after_date){
+  e=one(['дата появления на ozon','дата размещения на ozon','上架日期','listing date']);
+  let day=null;if(e){let x=e.value.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(x)day=e.value;else {x=e.value.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);if(x)day=x[3]+'-'+x[2]+'-'+x[1];}}
+  if(day){try{if(new Date(day+'T00:00:00Z').toISOString().slice(0,10)!==day)day=null;}catch{day=null;}}
+  push('listed_after',!day?'review':day>f.after_date?'pass':'exclude',e);
+ }
+ if(f.amount_min!==null||f.amount_max!==null){
+  const names=f.amount_metric==='unit_price'?['售价（人民币）','销售价格（人民币）','sale price, cny']:['近28天销售额（人民币）','sales revenue in 28 days, cny'];
+  e=one(names);const amount=e&&/^\d+(?:\.\d+)?$/.test(e.value)?Number(e.value):null;
+  push(f.amount_metric,amount===null||!Number.isFinite(amount)?'review':(f.amount_min===null||amount>=f.amount_min)&&(f.amount_max===null||amount<=f.amount_max)?'pass':'exclude',e);
+ }
+ return {decision:checks.some(x=>x.state==='exclude')?'exclude':checks.some(x=>x.state==='review')?'review':'pass',settings:f,checks,scope:'observed_evidence_only_not_listing_approval'};
+}

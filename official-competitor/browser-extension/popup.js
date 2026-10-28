@@ -1,6 +1,7 @@
-for(const action of ['auto-start','auto-pause','capture-form','capture-buyer','read-links','save-queue','next','save-target','export','status'])document.getElementById(action).onclick=async()=>{
+for(const action of ['save-filters','auto-start','auto-pause','capture-form','capture-buyer','read-links','save-queue','next','save-target','export','status'])document.getElementById(action).onclick=async()=>{
  const button=document.getElementById(action);button.disabled=true;
- try{const result=await chrome.runtime.sendMessage({action,limit:document.getElementById('limit').value,sku_hint:document.getElementById('sku-hint').value,target:document.getElementById('target').value,links:document.getElementById('links').value});document.getElementById('result').textContent=JSON.stringify(result,null,2);}
+ try{const result=await chrome.runtime.sendMessage({action,filters:{after_date:document.getElementById('after-date').value,amount_metric:document.getElementById('amount-metric').value,amount_min:document.getElementById('amount-min').value,amount_max:document.getElementById('amount-max').value,min_sold28:document.getElementById('min-sold28').value},limit:document.getElementById('limit').value,sku_hint:document.getElementById('sku-hint').value,target:document.getElementById('target').value,links:document.getElementById('links').value});document.getElementById('result').textContent=JSON.stringify(result,null,2);}
  catch(e){document.getElementById('result').textContent=String(e.message||e);}
  finally{button.disabled=false;}
 };
+(async()=>{try{const r=await chrome.runtime.sendMessage({action:'get-filters'});if(r.status!=='filters_loaded')return;const f=r.settings;for(const [id,k] of [['after-date','after_date'],['amount-metric','amount_metric'],['amount-min','amount_min'],['amount-max','amount_max'],['min-sold28','min_sold28']])document.getElementById(id).value=f[k]??'';}catch(e){document.getElementById('result').textContent='筛选设置读取失败：'+e.message;}})();

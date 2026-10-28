@@ -7,13 +7,15 @@ async function autoQueueAction(m){
  if(m.action==='auto-pause')return pauseAuto('user_paused');
  if(m.action!=='auto-start')return {status:'disabled'};
  if(autoBusy)return {status:'busy'};
- const {autoQueue:old,collectionQueue=[],snapshots={}}=await chrome.storage.local.get(['autoQueue','collectionQueue','snapshots']);
+ const {autoQueue:old,collectionQueue=[],snapshots={},captureFilters={}}=await chrome.storage.local.get(['autoQueue','collectionQueue','snapshots','captureFilters']);
  if(old?.status==='running')return {status:'already_running'};
+ const filters=parseFilterSettings(m.filters||captureFilters);
+ await chrome.storage.local.set({captureFilters:filters});
  const limit=Number(m.limit||5);if(!Number.isInteger(limit)||limit<1||limit>100)return {status:'error',message:'单批请输入1至100件'};
  // Explicit restart builds a new list; already saved SKUs are skipped.
  const urls=[...new Map(collectionQueue.filter(u=>buyerSku(u)&&!snapshots[buyerSku(u)]).map(u=>[buyerSku(u),u])).values()].slice(0,limit);
  if(!urls.length)return {status:'queue_complete_or_empty'};
- await chrome.storage.local.set({autoQueue:{status:'running',urls,index:0,phase:'navigate',tabId:null,started_at:new Date().toISOString(),reason:null}});
+ await chrome.storage.local.set({autoQueue:{status:'running',filters,counts:{pass:0,exclude:0,review:0},urls,index:0,phase:'navigate',tabId:null,started_at:new Date().toISOString(),reason:null}});
  await chrome.alarms.create(AUTO_ALARM,{periodInMinutes:0.5});await autoQueueTick();
  return {status:'started',planned:urls.length};
 }
@@ -39,6 +41,8 @@ async function autoQueueTick(){
   // Re-read state after asynchronous browser operations: pause must win over late results.
   const latest=await chrome.storage.local.get(['autoQueue','snapshots']);
   if(latest.autoQueue?.status!=='running'||latest.autoQueue.started_at!==s.started_at)return;
+  result.selection_review=evaluateCaptureFilters(result,s.filters);
+  s.counts=s.counts||{pass:0,exclude:0,review:0};s.counts[result.selection_review.decision]++;
   const saved=latest.snapshots||{};saved[expected]=result;s.index++;s.phase='navigate';
   if(s.index===s.urls.length){s.status='completed';s.finished_at=new Date().toISOString();s.reason='collection_only_complete';await chrome.alarms.clear(AUTO_ALARM);}
   await chrome.storage.local.set({snapshots:saved,autoQueue:s});

@@ -41,18 +41,26 @@ async function sellerCopyUi(command){
   [...matches][0].click();return {status:'copy_clicked',source_sku:command.sku};
  }
  if(command.action==='draft-identity')return {status:'identity_read',draft_ids:draftIds,heading:clean(document.querySelector('h1')?.innerText)};
- if(command.action==='delete-owned'){
-  if(!command.draft_id||!/^\d+$/.test(command.draft_id))return {status:'cleanup_identity_missing'};
-  const ownedDialog=dialogs.find(d=>[...d.querySelectorAll('[data-draft-id],[data-bundle-id]')].some(e=>[e.getAttribute('data-draft-id'),e.getAttribute('data-bundle-id')].includes(command.draft_id)));
-  const ownedPage=draftIds.includes(command.draft_id);
-  if(!ownedPage&&!ownedDialog)return {status:'cleanup_identity_not_visible'};
-  const allowed=ownedDialog?exact(['删除草稿','Удалить черновик','Delete draft'],[...ownedDialog.querySelectorAll('button,[role="button"]')].filter(visible)):deleteButtons;
-  if(allowed.length!==1)return {status:'owned_draft_delete_button_not_found'};
-  allowed[0].click();return {status:'owned_delete_clicked',draft_id:command.draft_id};
+ if(command.action==='back-from-parameters'){
+  if(!command.form_read_confirmed)return {status:'parameter_read_not_confirmed'};
+  const candidates=exact(['返回','Назад','Back']);
+  const links=[...document.querySelectorAll('a[href]')].filter(a=>visible(a)&&['返回','Назад','Back'].includes(clean(a.innerText))&&(()=>{try{const u=new URL(a.href),expected=new URL(command.copy_url);return u.origin===expected.origin&&u.pathname===expected.pathname;}catch{return false;}})());
+  const labelled=[...document.querySelectorAll('button[aria-label],[role="button"][aria-label]')].filter(e=>visible(e)&&['返回','Назад','Back'].includes(clean(e.getAttribute('aria-label'))));
+  const all=[...new Set([...candidates,...links,...labelled])];
+  if(all.length!==1)return {status:'back_button_ambiguous_or_missing',candidates:all.length};
+  all[0].click();return {status:'back_clicked'};
  }
- if(command.action==='verify-deletion'){
-  const alerts=[...document.querySelectorAll('[role="alert"],[role="status"],[class*="toast"],[class*="Toast"]')].filter(visible).map(e=>clean(e.innerText));
-  return {status:alerts.some(t=>/草稿已删除|已删除草稿|Черновик удал[её]н|Draft deleted/i.test(t))?'deletion_confirmed':'deletion_not_confirmed',copy_search:copySearch&&!restoreSeen,visible_draft_ids:draftIds};
+ if(command.action==='discard-unsaved'){
+  if(!command.back_clicked)return {status:'back_action_not_confirmed'};
+  const discard=exact(['退出且不保存','退出并且不保存','退出并不保存','Выйти без сохранения','Выйти и не сохранять','Не сохранять','Exit without saving']);
+  if(discard.length!==1)return {status:'discard_confirmation_not_ready',matches:discard.length};
+  discard[0].click();return {status:'discard_clicked'};
+ }
+ if(command.action==='verify-discard'){
+  const remaining=exact(['退出且不保存','退出并且不保存','退出并不保存','Выйти без сохранения','Выйти и не сохранять','Не сохранять','Exit without saving']);
+  const inputs=[...document.querySelectorAll('input')].filter(e=>visible(e)&&!e.disabled&&['text','search'].includes(e.type));
+  let expectedPath=false;try{const u=new URL(command.copy_url);expectedPath=u.origin===source.origin&&u.pathname===source.pathname;}catch{}
+  return {status:expectedPath&&copySearch&&inputs.length&&!remaining.length&&!restoreSeen&&!deleteButtons.length?'discard_return_confirmed':'discard_not_confirmed',verification_scope:'normal_UI_return_after_explicit_discard_not_server_draft_audit'};
  }
  return {status:'unsupported_action'};
 }

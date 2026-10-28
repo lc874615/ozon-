@@ -16,3 +16,6 @@ d=structuredClone(data);d.properties[0].value='6';assert.equal(result(d).decisio
 assert.throws(()=>c.parseFilterSettings({...f,amount_min:21}));assert.throws(()=>c.parseFilterSettings({...f,min_sold28:5}));assert.throws(()=>c.parseFilterSettings({...f,after_date:'2026-02-30'}));
 assert.equal(c.evaluateCaptureFilters(data,{...f,amount_metric:'revenue28'}).decision,'review');
 console.log('PASS exact date/price/volume boundaries, no RUB substitution, missing/conflicting evidence review, no review-count or revenue inference');
+
+d=structuredClone(data);d.properties.push({name:'履约方式',value:'FBO'});assert.equal(result(d).decision,'exclude');
+d=structuredClone(data);d.properties[0].value='2';d.properties.push({name:'履约方式',value:'FBS'});assert.equal(result(d).decision,'pass');

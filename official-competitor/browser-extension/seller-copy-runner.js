@@ -1,3 +1,9 @@
+async function sellerAlreadyCollected(sku){
+ const {sellerCollectionHistory={},sellerEvidence={},sellerCopyJob:j}=await chrome.storage.local.get(['sellerCollectionHistory','sellerEvidence','sellerCopyJob']);
+ if(sellerCollectionHistory[sku])return true;
+ if(j?.sku===sku&&(j.captured_properties?.length||0)>=4)return true;
+ const labels=new Set((sellerEvidence[sku]||[]).filter(p=>/包装|упаковк/i.test(p.name)).map(p=>p.name));return labels.size>=4;
+}
 let sellerCopyBusy=false,sellerCopyTimer=null;
 const COPY_ALARM='ozon-seller-copy-workflow';
 function wakeSellerCopy(ms=2000){if(sellerCopyTimer!==null)clearTimeout(sellerCopyTimer);sellerCopyTimer=setTimeout(()=>{sellerCopyTimer=null;sellerCopyTick();},ms);}
@@ -7,7 +13,7 @@ async function copyUi(tabId,command){
 }
 async function stopSellerCopy(reason){
  const {sellerCopyJob:j,sellerCopyBatch:b}=await chrome.storage.local.get(['sellerCopyJob','sellerCopyBatch']);
- if(j?.status==='running'){j.status='paused';j.reason=reason;j.cleanup_required=Boolean(j.copy_intent_at&&!j.deletion_verified);await chrome.storage.local.set({sellerCopyJob:j});if(b?.status==='running'){b.status='paused';b.reason=reason;await chrome.storage.local.set({sellerCopyBatch:b});}}
+ if(j?.status==='running'){j.status='paused';j.reason=reason;j.cleanup_required=Boolean(j.copy_intent_at&&!(j.deletion_verified||j.discard_verified));await chrome.storage.local.set({sellerCopyJob:j});if(b?.status==='running'){b.status='paused';b.reason=reason;await chrome.storage.local.set({sellerCopyBatch:b});}}
  await chrome.alarms.clear(COPY_ALARM);if(sellerCopyTimer!==null){clearTimeout(sellerCopyTimer);sellerCopyTimer=null;}
  if(/verification|access|denied|403|429/i.test(reason))await showVerificationAttention(j?.tab_id,'seller',reason);
  return {status:'seller_copy_paused',reason,cleanup_required:j?.cleanup_required||false};
@@ -15,7 +21,7 @@ async function stopSellerCopy(reason){
 async function finishSellerCopySkip(reason){
  const {sellerCopyJob:j,sellerCopyLedger=[]}=await chrome.storage.local.get(['sellerCopyJob','sellerCopyLedger']);
  if(!j||j.status!=='running')return {status:'no_running_task'};
- j.status='skipped';j.reason=reason;j.cleanup_required=Boolean(j.copy_intent_at&&!j.deletion_verified);j.finished_at=new Date().toISOString();
+ j.status='skipped';j.reason=reason;j.cleanup_required=Boolean(j.copy_intent_at&&!(j.deletion_verified||j.discard_verified));j.finished_at=new Date().toISOString();
  if(!sellerCopyLedger.some(e=>e.id===j.id))sellerCopyLedger.push({id:j.id,sku:j.sku,tab_id:j.tab_id,draft_id:j.draft_id||null,cleanup_required:j.cleanup_required,reason,at:j.finished_at});
  await chrome.storage.local.set({sellerCopyJob:j,sellerCopyLedger});await chrome.alarms.clear(COPY_ALARM);await advanceSellerBatch();return {status:'seller_copy_skipped',cleanup_required:j.cleanup_required,reason};
 }
@@ -39,6 +45,7 @@ async function advanceSellerBatch(){
  }
  if(b.index>=b.skus.length){b.status='completed';b.finished_at=new Date().toISOString();await chrome.storage.local.set({sellerCopyBatch:b});await chrome.alarms.clear(COPY_ALARM);return;}
  await chrome.storage.local.set({sellerCopyBatch:b});const remaining=b.next_at-Date.now();if(remaining>0){await chrome.alarms.create(COPY_ALARM,{periodInMinutes:0.5});wakeSellerCopy(remaining);return;}
+ if(await sellerAlreadyCollected(b.skus[b.index])){b.results.push({sku:b.skus[b.index],status:'skipped_already_collected',cleanup_required:false});b.index++;await chrome.storage.local.set({sellerCopyBatch:b});await advanceSellerBatch();return;}
  await startSellerCopy(b.skus[b.index],b.id);
 }
 async function armSellerCopy(){
@@ -49,6 +56,7 @@ async function armSellerCopy(){
 }
 async function startSellerCopy(sku,batchId=null){
  if(!/^\d+$/.test(String(sku||'')))throw new Error('请输入待验证的来源SKU');
+ if(await sellerAlreadyCollected(String(sku)))return {status:'seller_already_collected',sku:String(sku)};
  const {sellerCopyConfig:config,sellerCopyJob:old}=await chrome.storage.local.get(['sellerCopyConfig','sellerCopyJob']);
  if(!config)throw new Error('请先在干净复制搜索页启用自动流程');
  if(old?.status==='running')throw new Error('已有任务运行，不能重复复制');
@@ -88,29 +96,44 @@ async function sellerCopyTick(){
    if(r?.status!=='copy_clicked'){j.phase='copy_uncertain';await save();return await stopSellerCopy(r?.status||'copy_result_unknown');}
    j.phase='read';j.phase_at=Date.now();await save();wakeSellerCopy(2500);return;
   }
-  if(j.phase==='copy_in_flight'||j.phase==='delete_in_flight')return await stopSellerCopy('mutation_result_unknown_do_not_retry');
+  if(j.phase==='copy_in_flight'||j.phase==='delete_in_flight'||j.phase==='discard_in_flight')return await stopSellerCopy('mutation_result_unknown_do_not_retry');
   if(j.phase==='read'){
    const form=(await chrome.scripting.executeScript({target:{tabId:j.tab_id},files:['form-reader.js']}))[0]?.result;
    const identity=await copyUi(j.tab_id,{action:'draft-identity'});if(identity?.status==='blocked_verification')return await stopSellerCopy('verification_required');
    const names=['包装长度，毫米','包装宽度，毫米','包装高度，毫米','含包装重量，克','Длина упаковки, мм','Ширина упаковки, мм','Высота упаковки, мм','Вес с упаковкой, г'];
    const properties=(form?.fields||[]).filter(f=>names.includes(String(f.label||'').replace(/\s*[*＊]\s*$/,'').trim())&&/^\d+(?:\.\d+)?$/.test(String(f.value))).map(f=>({name:String(f.label).replace(/\s*[*＊]\s*$/,'').trim(),value:String(f.value),source:'single_sku_copy_ui_transaction',source_sku:j.sku,captured_at:form.captured_at,source_page:form.page.origin+form.page.path}));
    if(properties.length<4&&Date.now()-j.phase_at<15000){wakeSellerCopy(2000);return;}
+   if(properties.length>=4){const {sellerCollectionHistory={}}=await chrome.storage.local.get('sellerCollectionHistory');sellerCollectionHistory[j.sku]={captured_at:new Date().toISOString(),fields:properties.length,job_id:j.id};await chrome.storage.local.set({sellerCollectionHistory});}
    j.captured_properties=properties;j.draft_id=identity?.draft_ids?.length===1?identity.draft_ids[0]:null;
    const {sellerEvidence={}}=await chrome.storage.local.get('sellerEvidence');sellerEvidence[j.sku]=[...(sellerEvidence[j.sku]||[]),...properties];await chrome.storage.local.set({sellerEvidence});
    event('read',properties.length>=4?'packaging_read':'packaging_incomplete');
-   if(!j.draft_id){await save();return await finishSellerCopySkip('draft_id_not_exposed_cleanup_not_verified');}
-   j.phase='delete';j.phase_at=Date.now();await save();wakeSellerCopy();return;
+   if(!form?.fields?.length){await save();return await finishSellerCopySkip('parameter_form_not_loaded_cannot_exit_safely');}
+   j.form_snapshot=form;j.form_signature=JSON.stringify(form.fields.map(f=>({label:f.label,value:f.value})));
+   j.phase='back';j.phase_at=Date.now();await save();wakeSellerCopy();return;
   }
-  if(j.phase==='delete'){
-   j.phase='delete_in_flight';if(!await save())return;
-   const r=await copyUi(j.tab_id,{action:'delete-owned',draft_id:j.draft_id});event('delete',r?.status);
-   if(r?.status==='blocked_verification'){j.phase='delete';await save();return await stopSellerCopy('verification_required');}
-   if(r?.status!=='owned_delete_clicked'){j.phase='cleanup_needs_ui_adapter';await save();return await finishSellerCopySkip(r?.status||'delete_not_available');}
-   j.phase='verify';j.phase_at=Date.now();await save();wakeSellerCopy(700);return;
+  if(j.phase==='back'){
+   const current=(await chrome.scripting.executeScript({target:{tabId:j.tab_id},files:['form-reader.js']}))[0]?.result;
+   if(!current||JSON.stringify(current.fields.map(f=>({label:f.label,value:f.value})))!==j.form_signature)return await finishSellerCopySkip('parameter_form_changed_before_exit');
+   const r=await copyUi(j.tab_id,{action:'back-from-parameters',form_read_confirmed:true,copy_url:j.copy_url});event('back',r?.status);
+   if(r?.status==='blocked_verification')return await stopSellerCopy('verification_required');
+   if(r?.status!=='back_clicked'){await save();return await finishSellerCopySkip(r?.status||'back_not_available');}
+   j.phase='discard';j.back_clicked_at=new Date().toISOString();j.phase_at=Date.now();await save();wakeSellerCopy(700);return;
   }
-  if(j.phase==='verify'){
-   const r=await copyUi(j.tab_id,{action:'verify-deletion'});if(r?.status==='blocked_verification')return await stopSellerCopy('verification_required');if(r?.status!=='deletion_confirmed'){wakeSellerCopy(1000);return;}
-   j.deletion_verified=true;j.cleanup_required=false;j.status='completed';j.reason='single_copy_read_delete_verified';j.finished_at=new Date().toISOString();event('verify','deletion_confirmed');await save();await chrome.alarms.clear(COPY_ALARM);await advanceSellerBatch();return;
+  if(j.phase==='discard'){
+   j.phase='discard_in_flight';if(!await save())return;
+   const r=await copyUi(j.tab_id,{action:'discard-unsaved',back_clicked:!!j.back_clicked_at});event('discard',r?.status);
+   if(r?.status==='blocked_verification'){j.phase='discard';await save();return await stopSellerCopy('verification_required');}
+   if(r?.status==='discard_confirmation_not_ready'){
+    j.phase='discard';await save();if(Date.now()-j.phase_at<12000){wakeSellerCopy(1000);return;}return await finishSellerCopySkip('discard_dialog_not_identified');
+   }
+   if(r?.status!=='discard_clicked'){await save();return await finishSellerCopySkip(r?.status||'discard_not_available');}
+   j.phase='verify_discard';j.phase_at=Date.now();j.discard_clicked_at=new Date().toISOString();await save();wakeSellerCopy(700);return;
+  }
+  if(j.phase==='verify_discard'){
+   const r=await copyUi(j.tab_id,{action:'verify-discard',copy_url:j.copy_url});
+   if(r?.status==='blocked_verification')return await stopSellerCopy('verification_required');
+   if(r?.status!=='discard_return_confirmed'){wakeSellerCopy(1000);return;}
+   j.discard_verified=true;j.discard_verification_scope=r.verification_scope;j.cleanup_required=false;j.status='completed';j.reason='copy_read_back_discard_ui_verified';j.finished_at=new Date().toISOString();event('verify_discard','returned_after_exit_without_saving');await save();await chrome.alarms.clear(COPY_ALARM);await advanceSellerBatch();return;
   }
   return await stopSellerCopy('unsupported_workflow_phase');
  }catch(e){const reason='ui_workflow_error: '+String(e.message||e).slice(0,180);const {sellerCopyJob:current}=await chrome.storage.local.get('sellerCopyJob');if(/access|denied|403|429/i.test(reason))await stopSellerCopy(reason);else if(current?.copy_intent_at)await finishSellerCopySkip(reason);else await stopSellerCopy(reason);}
@@ -125,6 +148,7 @@ async function ensureSellerCopyForSku(sku){
  if(!config?.enabled_in_buyer_queue)return {status:'disabled'};
  if(j?.sku===sku){if(j.status==='running')return {status:'waiting'};if(j.status==='paused')return {status:'paused'};if(['completed','skipped'].includes(j.status))return {status:'done',cleanup_required:j.cleanup_required};}
  if(j?.status==='running')return {status:'waiting'};
+ if(await sellerAlreadyCollected(sku))return {status:'done',already_collected:true};
  if(b?.status==='running')return {status:'waiting'};
  const {sellerCopyLedger=[]}=await chrome.storage.local.get('sellerCopyLedger');if(sellerCopyLedger.some(e=>e.sku===sku&&e.cleanup_required))return {status:'done',cleanup_required:true};
  await startSellerCopy(sku);return {status:'waiting'};

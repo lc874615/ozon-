@@ -1,10 +1,17 @@
 // User-started buyer queue; no seller API calls or listing actions.
-importScripts('attention.js','selection-filters.js','seller-sync.js','auto-queue.js','seller-copy-runner.js');
+importScripts('attention.js','selection-filters.js','seller-sync.js','native-market-sync.js','auto-queue.js','seller-copy-runner.js');
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   (async()=>{
     const store=chrome.storage.local;
+    if(message.action==='save-market-company'){
+      const value=String(message.company_id||'').trim();if(value&&!/^\d+$/.test(value))throw new Error('店铺编号只接受数字');await store.set({marketCompanyId:value,nativeMarketCache:{}});return {status:'market_company_saved'};
+    }
+    if(message.action==='resume-market-read'){
+      const {nativeMarketBlocked:b,autoQueue:q}=await store.get(['nativeMarketBlocked','autoQueue']);if(b?.retry_not_before>Date.now())throw new Error('接口要求继续等待，请稍后再试');await store.set({nativeMarketBlocked:null});if(q?.status==='paused'&&q.reason==='seller_market_access_limited'){q.status='running';q.reason=null;await store.set({autoQueue:q});await chrome.alarms.create(AUTO_ALARM,{periodInMinutes:0.5});scheduleAutoTick(0);}return {status:'market_read_resumed'};
+    }
     if(message.action==='arm-seller-copy')return armSellerCopy();
-    if(message.action==='start-seller-copy')return startSellerCopy(message.sku_hint);
+    if(message.action==='read-market-sku'){if(!/^\d+$/.test(String(message.sku_hint||'')))throw new Error('请输入来源SKU');return syncNativeMarketForSku(message.sku_hint);}
+    if(message.action==='start-seller-copy'){if(!/^\d+$/.test(String(message.sku_hint||'')))throw new Error('请输入来源SKU');const market=await syncNativeMarketForSku(message.sku_hint);if(market.pause_required||market.status==='blocked_until_user_handles')return {status:'analysis_access_paused'};return {...await startSellerCopy(message.sku_hint),analysis_status:market.status};}
     if(message.action==='start-seller-copy-batch')return startSellerCopyBatch(message.limit);
     if(message.action==='pause-seller-copy')return stopSellerCopy('user_paused');
     if(message.action==='resume-seller-copy'){
@@ -19,8 +26,8 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     const validLink=raw=>{try{const u=new URL(raw);return u.protocol==='https:'&&['ozon.ru','www.ozon.ru'].includes(u.hostname)&&/^\/product\/(?:[^/]*-)?\d+\/?$/.test(u.pathname)?u.origin+u.pathname:null;}catch{return null;}};
     const run=async file=>{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab?.id)throw new Error('请先打开商品或搜索页面');return (await chrome.scripting.executeScript({target:{tabId:tab.id},files:file==='collector.js'?['delivery-reference.js','collector.js']:[file]}))[0]?.result;};
     if(message.action==='export-diagnostics'){
-      const {snapshots={},autoQueue=null,sellerSync=null,sellerEvidence={},sellerCopyJob=null,sellerCopyBatch=null,sellerCopyLedger=[]}=await store.get(['snapshots','autoQueue','sellerSync','sellerEvidence','sellerCopyJob','sellerCopyBatch','sellerCopyLedger']);
-      const data={version:chrome.runtime.getManifest().version,autoQueue,sellerSync,sellerEvidence,sellerCopyJob,sellerCopyBatch,sellerCopyLedger,observations:Object.values(snapshots).map(d=>({product_id:d.product_id,status:d.status,title:d.title,collection_status:d.collection_status,collection_issue:d.collection_issue,captured_at:d.captured_at,collection_timing:d.collection_timing,diagnostics:d.diagnostics,seller_properties:d.seller_properties,delivery_observation:d.delivery_observation,source_url:d.source_url,images_count:(d.images||[]).length,price_widget_text:d.price_widget_text,properties:d.properties,selection_review:d.selection_review}))};
+      const {snapshots={},autoQueue=null,sellerSync=null,sellerEvidence={},sellerCopyJob=null,sellerCopyBatch=null,sellerCopyLedger=[],nativeMarketLast=null}=await store.get(['snapshots','autoQueue','sellerSync','sellerEvidence','sellerCopyJob','sellerCopyBatch','sellerCopyLedger','nativeMarketLast']);
+      const data={version:chrome.runtime.getManifest().version,autoQueue,sellerSync,sellerEvidence,sellerCopyJob,sellerCopyBatch,sellerCopyLedger,nativeMarketLast,observations:Object.values(snapshots).map(d=>({product_id:d.product_id,status:d.status,title:d.title,collection_status:d.collection_status,collection_issue:d.collection_issue,captured_at:d.captured_at,collection_timing:d.collection_timing,diagnostics:d.diagnostics,seller_properties:d.seller_properties,delivery_observation:d.delivery_observation,source_url:d.source_url,images_count:(d.images||[]).length,price_widget_text:d.price_widget_text,properties:d.properties,selection_review:d.selection_review}))};
       await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-collection-diagnostics.json',saveAs:true});return {status:'diagnostics_exported'};
     }
     if(message.action==='capture-listing-dates'){
@@ -37,6 +44,9 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
       return {status:'target_saved',target:n,note:'仅记录目标，尚未启动自动上架或发布'};
     }
     if(message.action==='capture-buyer'){
+      const [active]=await chrome.tabs.query({active:true,currentWindow:true});let activeSku=null;try{activeSku=new URL(active?.url||'').pathname.match(/(?:-|\/)(\d+)\/?$/)?.[1];}catch{}
+      const {snapshots:existing={}}=await store.get('snapshots');if(activeSku&&existing[activeSku])return {status:'buyer_already_collected',sku:activeSku};
+
       const data=await run('collector.js');if(!data?.product_id||data.status==='blocked_verification')return data||{status:'empty'};
       const {snapshots={},captureFilters={},listingDateEvidence={},sellerEvidence={}}=await store.get(['snapshots','captureFilters','listingDateEvidence','sellerEvidence']);data.selection_review=evaluateCaptureFilters(withListingEvidence(withSellerEvidence(data,sellerEvidence),listingDateEvidence),captureFilters);snapshots[data.product_id]=data;
       await store.set({snapshots});return {status:data.status,sku:data.product_id,properties:data.properties.length,collected:Object.keys(snapshots).length,packaging_verified:false};
@@ -82,7 +92,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
       await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-filtered-observations.json',saveAs:true});
       return {status:'historical_data_exported'};
     }
-    if(message.action==='status'){const {dailyGoal=null,collectionQueue=[],snapshots={},autoQueue=null,sellerSync=null,sellerCopyJob=null,sellerCopyBatch=null,verificationAttention=null}=await store.get(['dailyGoal','collectionQueue','snapshots','autoQueue','sellerSync','sellerCopyJob','sellerCopyBatch','verificationAttention']);const batchIds=(autoQueue?.urls||[]).map(u=>u.match(/(?:-|\/)(\d+)\/?$/)?.[1]);const records=batchIds.map(id=>snapshots[id]).filter(Boolean);const buyerBatchStats={saved:records.length,properties:records.reduce((n,d)=>n+(d.properties||[]).length,0),with_images:records.filter(d=>d.images?.length).length,with_price_text:records.filter(d=>d.price_widget_text).length};return {sellerCopyJob,sellerCopyBatch,verificationAttention,sellerSync,buyerBatchStats,autoQueue,dailyGoal,queued:collectionQueue.length,collected:Object.keys(snapshots).length,mode:'user_clicked_current_form_export',version:chrome.runtime.getManifest().version,
+    if(message.action==='status'){const {dailyGoal=null,collectionQueue=[],snapshots={},autoQueue=null,sellerSync=null,sellerCopyJob=null,sellerCopyBatch=null,verificationAttention=null,nativeMarketLast=null}=await store.get(['dailyGoal','collectionQueue','snapshots','autoQueue','sellerSync','sellerCopyJob','sellerCopyBatch','verificationAttention','nativeMarketLast']);const batchIds=(autoQueue?.urls||[]).map(u=>u.match(/(?:-|\/)(\d+)\/?$/)?.[1]);const records=batchIds.map(id=>snapshots[id]).filter(Boolean);const buyerBatchStats={saved:records.length,properties:records.reduce((n,d)=>n+(d.properties||[]).length,0),with_images:records.filter(d=>d.images?.length).length,with_price_text:records.filter(d=>d.price_widget_text).length};return {nativeMarketLast,sellerCopyJob,sellerCopyBatch,verificationAttention,sellerSync,buyerBatchStats,autoQueue,dailyGoal,queued:collectionQueue.length,collected:Object.keys(snapshots).length,mode:'user_clicked_current_form_export',version:chrome.runtime.getManifest().version,
       automatic_website_requests:'only user-started buyer queue',cookie_access:false,automatic_form_changes:false};}
     return {status:'disabled',reason:'无人值守采集和账号接口操作未启用。'};
   })().then(respond,e=>respond({status:'error',message:String(e.message||e).slice(0,300)}));

@@ -16,7 +16,7 @@ async function autoQueueAction(m){
  await chrome.storage.local.set({captureFilters:filters});
  const limit=Number(m.limit||5);if(!Number.isInteger(limit)||limit<1||limit>100)return {status:'error',message:'单批请输入1至100件'};
  // Explicit restart builds a new list; already saved SKUs are skipped.
- const urls=[...new Map(collectionQueue.filter(u=>buyerSku(u)&&(!snapshots[buyerSku(u)]||snapshots[buyerSku(u)].collection_status==='partial')).map(u=>[buyerSku(u),u])).values()].slice(0,limit);
+ const urls=[...new Map(collectionQueue.filter(u=>buyerSku(u)&&!snapshots[buyerSku(u)]).map(u=>[buyerSku(u),u])).values()].slice(0,limit);
  if(!urls.length)return {status:'queue_complete_or_empty'};
  await chrome.storage.local.set({autoQueue:{status:'running',filters,counts:{pass:0,exclude:0,review:0},urls,index:0,phase:'navigate',tabId:null,started_at:new Date().toISOString(),reason:null}});
  await chrome.alarms.create(AUTO_ALARM,{periodInMinutes:0.5});await autoQueueTick();
@@ -28,6 +28,7 @@ async function autoQueueTick(){
   const {autoQueue:s,snapshots={}}=await chrome.storage.local.get(['autoQueue','snapshots']);if(s?.status!=='running')return;
   if(s.index>=s.urls.length){s.status='completed';s.finished_at=new Date().toISOString();s.reason='collection_only_complete';await chrome.storage.local.set({autoQueue:s});await chrome.alarms.clear(AUTO_ALARM);return;}
   const expected=buyerSku(s.urls[s.index]);if(!expected)return await pauseAuto('invalid_queue_url');
+  if(s.phase==='navigate'&&snapshots[expected]){s.index++;s.skipped_existing=(s.skipped_existing||0)+1;await chrome.storage.local.set({autoQueue:s});scheduleAutoTick(0);return;}
   if(s.phase==='navigate'){
    const wait=(s.next_navigation_at||0)-Date.now();if(wait>0){scheduleAutoTick(wait);return;}
    let tab;if(s.tabId===null)tab=await chrome.tabs.create({url:s.urls[s.index],active:false});else tab=await chrome.tabs.update(s.tabId,{url:s.urls[s.index]});
@@ -36,6 +37,8 @@ async function autoQueueTick(){
    if(current.autoQueue?.status!=='running'||current.autoQueue.started_at!==s.started_at)return;
    await chrome.storage.local.set({autoQueue:s});scheduleAutoTick(2000);return;
   }
+  const market=await syncNativeMarketForSku(expected);
+  if(market.pause_required||market.status==='blocked_until_user_handles')return await pauseAuto('seller_market_access_limited');
   await syncSellerVisible(expected);
   const tab=await chrome.tabs.get(s.tabId);
   if(tab.status!=='complete'){if(Date.now()-s.navigated_at>90000)await pauseAuto('page_load_timeout');else scheduleAutoTick(2000);return;}

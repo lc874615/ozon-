@@ -16,8 +16,9 @@ function evaluateCaptureFilters(data,settings){
  const values=names=>props.filter(p=>names.includes(norm(p.name))).map(p=>({value:String(p.value).trim(),source:p.source||'labelled_product_property',label:p.name}));
  const one=names=>{const a=values(names);return a.length&&new Set(a.map(x=>norm(x.value))).size===1?a[0]:null;};
  const push=(field,state,evidence=null)=>checks.push({field,state,evidence});
+ const scheme=one(['схема продаж','sales schema','履约方式','发货方式']);
  let e=one(['参考最短送达天数']);const delivery=e&&/^\d+$/.test(e.value)?Number(e.value):null;
- push('delivery_at_least_7_days',delivery===null?'review':delivery>=7?'pass':'exclude',e);
+ push('delivery_at_least_7_days',scheme&&norm(scheme.value)==='fbs'?'pass':scheme&&['fbo','rfbs','real fbs'].includes(norm(scheme.value))?'exclude':delivery===null?'review':delivery>=7?'pass':'exclude',scheme||e);
  const brandRows=values(['бренд','brand','品牌']);
  const blocked=brandRows.find(row=>internationalBrands.includes(norm(row.value)));
  const title=norm(data.title);const titleSignal=internationalBrands.find(b=>new RegExp('(^|[^a-z0-9])'+b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-z0-9]|$)','i').test(title));

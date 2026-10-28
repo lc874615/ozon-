@@ -1,0 +1,177 @@
+{
+  "format": 1,
+  "created_date": "2026-10-29",
+  "timezone": "Asia/Shanghai",
+  "extension_version": "0.5.5",
+  "encryption": "AES-256-GCM",
+  "key_in_repository": false,
+  "encrypted_sha256": "cfdfe5dcc2bc901a1c6700611d5cee128e62c9ec983b812a08a63eca757e326e",
+  "encrypted_bytes": 13723039,
+  "file_count": 265,
+  "available_attachment_count": 43,
+  "scope": "all existing project code, available attachments, relevant local investigation files and rule references; no environment secrets, browser profiles, caches or unavailable chat transcript",
+  "parts": [
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part001",
+      "bytes": 524288,
+      "sha256": "7d46380689095a69a5fe14bf9affeced894ccdca2c240807fd2388f869960239",
+      "git_blob_sha": "38f8778975631d984dd11bb70200f1b5f430ccbc"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part002",
+      "bytes": 524288,
+      "sha256": "6cc47bef18919142b8e4b79dcde59300167f82c281c28279fdf4c4b4a08aac8d",
+      "git_blob_sha": "df0d05cf4b7b7eb2b1288f9eef565fab3a223258"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part003",
+      "bytes": 524288,
+      "sha256": "04ed14418835041678ecb2575b6505c5aec80bd9c5966213485d6c88cdebdf62",
+      "git_blob_sha": "cadb9e85c827b36ec0034612885a589f193f9606"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part004",
+      "bytes": 524288,
+      "sha256": "b771512675e8319aaba9c9e8473e89cd11c1af51ca84f0581b2b0e9eae93b65a",
+      "git_blob_sha": "1158122edac98fa815d0cc9afd575035a4388bf6"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part005",
+      "bytes": 524288,
+      "sha256": "876fc9b08a33af815a752d90a1876720f02bd067c1f5f88026bdc006b8478196",
+      "git_blob_sha": "6047bbeff1675b2c5fcc4a420b421f90d49557e0"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part006",
+      "bytes": 524288,
+      "sha256": "6e222167d38480ba1f069875f378d8c729632ea0a69e1e15bc449832e75e333e",
+      "git_blob_sha": "2a4d7fc138b8aaaa2231b711320efd1eecc37ece"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part007",
+      "bytes": 524288,
+      "sha256": "d1eff15c47381d0441eb770241990753d7c32b4ef2c14f69511ca889ede7a774",
+      "git_blob_sha": "864dad4e9680abed6264da27c2bcd1eaec6c267b"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part008",
+      "bytes": 524288,
+      "sha256": "3d28c718a49034e4a97ec55e7087bbc9dff0079c3a27506baa50f7f0198f4760",
+      "git_blob_sha": "80eaa0218f19d4fe652362ab48ebe3b004b470b9"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part009",
+      "bytes": 524288,
+      "sha256": "5b78d2a36cd6db3f6cb5da6131084698c70e9bce231116599045330665039a30",
+      "git_blob_sha": "d7f6da85bcbcbd33bdc5562176e3d83146b9a12e"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part010",
+      "bytes": 524288,
+      "sha256": "e3ba1b9561550aeadd0eff943c4c828a6a72082baa8783f21d2ba9b2287cadeb",
+      "git_blob_sha": "fdc10bfe55d89b185f216682c2190831194885e7"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part011",
+      "bytes": 524288,
+      "sha256": "8bc143cbf7b773fba697f4fdcad46c0163cb1b561dc68acf72f736eb67e7a9f6",
+      "git_blob_sha": "c671221c22ef2d86e4839d27533c96baccfba1f5"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part012",
+      "bytes": 524288,
+      "sha256": "8a49dd3a34b09c4fc0f690f59b0d680c43c88ca2edf87d0d5fc52e80362d60e3",
+      "git_blob_sha": "55e07eb53820e32481eb459fbd17fce1818a85c2"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part013",
+      "bytes": 524288,
+      "sha256": "5286243ac18e27f8206d0a9924aa0436aa2c9b3feced157a6ee40c150988dd22",
+      "git_blob_sha": "c3caa64d3db072d7afac9f88cee2d3b24eeb16d7"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part014",
+      "bytes": 524288,
+      "sha256": "5fda98f43f13643d568b711d1502f5b6ca7af9cb57c6240f2ef5328a376c8e96",
+      "git_blob_sha": "a4b5b50d6494a53ccdbcd1113b0a0267908dd35e"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part015",
+      "bytes": 524288,
+      "sha256": "f6cd0a07aa21ee42ee0c9286e7067eac0e4c2c8a497fdb31363c884280292410",
+      "git_blob_sha": "36066fbd2e0ac3231c21560befca2267c4434af2"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part016",
+      "bytes": 524288,
+      "sha256": "034ef69c19996f384147f1ab40857019d69ae08c922abe6f621e1e311aa20182",
+      "git_blob_sha": "a5acdb062e5c0cecf5e7ac6e21b8d43480d1ba99"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part017",
+      "bytes": 524288,
+      "sha256": "1a4b3887101810da68ad19c781735fbb13734bf00ff4b98a61eeb4b34a9c458b",
+      "git_blob_sha": "6005437a194c6db79f6a8fbb1d0e60fc3e0ab12d"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part018",
+      "bytes": 524288,
+      "sha256": "0b6141ecd81d3e5498a015175692e6badbe2ed82164881b587fc29dcf556a16c",
+      "git_blob_sha": "675bf056d599ca38ebdd80ba2d58424d65e612fb"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part019",
+      "bytes": 524288,
+      "sha256": "31e5f8cee3cb0828c16cbcf08ba9785f5b058ef25c3f07feeb674ec0971717e4",
+      "git_blob_sha": "cf101a1d7a76d0d99d463b2dc5009b09da8df7b7"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part020",
+      "bytes": 524288,
+      "sha256": "07395991a6ee382812b708ec8d359d2761c876814462aef09ee4461359291447",
+      "git_blob_sha": "dcde8e7b3b87e04d3bb8575ad4b033cfdfc2279c"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part021",
+      "bytes": 524288,
+      "sha256": "89dea68f54e8fc1c3a368f91ab25b1a28fc21d4de362cf7271aeb2d19ddc832a",
+      "git_blob_sha": "065935a7c6bd342c0c841b8637c0fcfd965bd016"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part022",
+      "bytes": 524288,
+      "sha256": "cd2b4194b97b6cbc5d52e958a1c9e9cbca7123602b4b6cd782d7beab7e5cecf1",
+      "git_blob_sha": "de3ecbee2676a2a6b2323208d26267edbb372585"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part023",
+      "bytes": 524288,
+      "sha256": "40bf90406ec7a79df4bf651fb08cf1a025b2f31beb98d1faebc32c7b48a186b6",
+      "git_blob_sha": "5c43a7bb3f039c310ba620b515bb0d9eef286eea"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part024",
+      "bytes": 524288,
+      "sha256": "fc55ccb4f8ab1e8ed55b0433562546feb10ac9a389c455948a14af127e3431dd",
+      "git_blob_sha": "f7abc96e449f06ce845bf765e38a8c2d31ff27e5"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part025",
+      "bytes": 524288,
+      "sha256": "5798f47a5c29ba05fa621ec07a91ff1b4ed7f6387c3e80483008fab99aecc562",
+      "git_blob_sha": "33a23f35d21d97cd61952b9d70827ed8df41c64a"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part026",
+      "bytes": 524288,
+      "sha256": "66e02b991e454a6afb3d5dfb022d21b007656ab7321289286f7d46cae58197d6",
+      "git_blob_sha": "26e7fd2c51cebf857cc2cf3ed57bce2d62edd881"
+    },
+    {
+      "path": "2026-10-29/full-workspace.ozonenc.part027",
+      "bytes": 91551,
+      "sha256": "0636fa12c159bb78b4e8f1dd10576348f26e9208eccde0c9b24c5210c6307c8c",
+      "git_blob_sha": "6f10bcf21ca3724f07881796a10d167c03e87d8a"
+    }
+  ]
+}

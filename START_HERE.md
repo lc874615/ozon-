@@ -1,8 +1,9 @@
-# 当前工具入口
+# 新会话从这里继续
 
-- [0.4.1 用户点击后导出当前商品参数页](official-competitor/FORM_EXPORT.md)
-- [竞品官方报表离线导入](official-competitor/README.md)
+1. 阅读 [official-competitor/HANDOFF.md](official-competitor/HANDOFF.md)，它覆盖旧版冲突规则。
+2. 阅读 [使用说明](official-competitor/INTEGRATED_CAPTURE.md)，核对manifest版本0.5.5。运行当前测试后继续真实页面验证，不把模拟测试说成实际完成。
+3. 用户当前只要求采集，结束后停止；不要上架、改价或改库存。
+4. 如需完整旧源码、规则附件、原始诊断、静态分析资料，按 [backups/README.md](backups/README.md) 解密。用户需单独提供恢复密钥，不能从仓库找密钥。
+5. 检查新环境API绑定是否就绪，不打印密钥，也不把密钥写进扩展。云端没有直接遥控用户电脑的通道。
 
-当前页读取不调用后台业务接口、不读取Cookie、不改变表单或自动提交。它不能阻止页面自身保存，也不保证包含未加载标签或虚拟行。来源SKU提示不是身份核验结果。
-
-此前日期备份为历史实验，不是当前推荐采集路径。实际页面实测仍以用户导出文件为准。
+可复制到新会话的文字见 [official-competitor/START_NEW_CHAT.txt](official-competitor/START_NEW_CHAT.txt)。

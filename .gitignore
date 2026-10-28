@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.env
+.env.*
+recovery-key*
+*recovery*key*.txt
+*.key
+restored-project/
+playwright-profile*/

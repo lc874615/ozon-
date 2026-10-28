@@ -1,0 +1,322 @@
+{
+  "date": "2026-10-29",
+  "version": "0.5.5",
+  "scope": "current explicitly published text files; encrypted payload and historical trees have separate manifests",
+  "files": [
+    {
+      "path": "official-competitor/.gitignore",
+      "bytes": 83,
+      "sha256": "0a8437159bb5b0e40fa1bdf65a99d6c397396df74bbb48acf3fd7629fbca02f6"
+    },
+    {
+      "path": "official-competitor/FORM_EXPORT.md",
+      "bytes": 3332,
+      "sha256": "114b00c12c2f469bf2051a4b69c94dbb82a0d61062823cdda8f3f157aee21f4b"
+    },
+    {
+      "path": "official-competitor/HANDOFF.md",
+      "bytes": 7217,
+      "sha256": "0b21bbf46e96ab729053779f04e0fa2879ee206a6d892e8f791fe2e0d7c96358"
+    },
+    {
+      "path": "official-competitor/INTEGRATED_CAPTURE.md",
+      "bytes": 17150,
+      "sha256": "149808fe842a8bec2b427713fa019c43cd8c5ce9a3b30f4e6cff41a180e091e2"
+    },
+    {
+      "path": "official-competitor/README.md",
+      "bytes": 5160,
+      "sha256": "2f2106352f4e0040d8d53ce947e9ea13b027a0cf386535aad430d8589fd0ff3a"
+    },
+    {
+      "path": "official-competitor/START_NEW_CHAT.txt",
+      "bytes": 909,
+      "sha256": "1af54982e0c7af24504d2afa5f8ac31f23974ae009bd71b0950e74478798e775"
+    },
+    {
+      "path": "official-competitor/backup-tools/join_restore.py",
+      "bytes": 1841,
+      "sha256": "b504f23808d82cb57d6560891b7ac95ae2e6795a14706445e2c3aa32ec651cb2"
+    },
+    {
+      "path": "official-competitor/backup-tools/restore_backup.py",
+      "bytes": 2440,
+      "sha256": "f8e3e8c7161678c180ecbc516a7fe696bca5cd3e8f619fd32927db147545e9f1"
+    },
+    {
+      "path": "official-competitor/browser-extension/attention.js",
+      "bytes": 1861,
+      "sha256": "7da624107c221b9119fac94cc8ad5c7ffdc25bf041034a490c6b7fdb5354ac27"
+    },
+    {
+      "path": "official-competitor/browser-extension/auto-queue.js",
+      "bytes": 7733,
+      "sha256": "2672e37059b0eb82f302949964878fcb956b266a0502fd7bff2410bc4dcf3e07"
+    },
+    {
+      "path": "official-competitor/browser-extension/background.js",
+      "bytes": 12938,
+      "sha256": "e93471217ba743e99bf73f3612d9dd42ccf71896fe7f18ce3122028339a2ce72"
+    },
+    {
+      "path": "official-competitor/browser-extension/collector.js",
+      "bytes": 6051,
+      "sha256": "f4bcfdd0d26b4d6d9f1e97733ef3ce6c445f44998068323a64b344a61fe3ddbc"
+    },
+    {
+      "path": "official-competitor/browser-extension/delivery-reference.js",
+      "bytes": 1994,
+      "sha256": "cbc158ff12965e7ba43f2ebe9ad301b043898f1f929b42cf8cc5cd0cca2a8bbb"
+    },
+    {
+      "path": "official-competitor/browser-extension/form-reader.js",
+      "bytes": 8249,
+      "sha256": "603b2d8ed5e3266a0d069eebe55b6b73fe1d3c566f5fa0a967dfd94eb23656dd"
+    },
+    {
+      "path": "official-competitor/browser-extension/link-reader.js",
+      "bytes": 481,
+      "sha256": "8efb75cd3bb03b5e7643ad779af1f1b8ede1b809c522a4dc5adc8a6b724865fd"
+    },
+    {
+      "path": "official-competitor/browser-extension/listing-date-reader.js",
+      "bytes": 1927,
+      "sha256": "a998d2e75566083464f1806ab734c5b7991e46832017e0fdbf645c6d8f184643"
+    },
+    {
+      "path": "official-competitor/browser-extension/manifest.json",
+      "bytes": 602,
+      "sha256": "1c5d117d1e987e62f022865626e92ddb6b0f016f4b9b99dbdf2910465a137767"
+    },
+    {
+      "path": "official-competitor/browser-extension/native-market-reader.js",
+      "bytes": 3547,
+      "sha256": "05b6bb40e650de3fcbf336e2475f6cab72fcce434e6c159e234cbbb8f91206af"
+    },
+    {
+      "path": "official-competitor/browser-extension/native-market-sync.js",
+      "bytes": 2163,
+      "sha256": "35a2bc06f49c7f1f230eacff640c3ee5a9bc20ef7730c2c91819aad9f75a6a34"
+    },
+    {
+      "path": "official-competitor/browser-extension/popup.html",
+      "bytes": 5775,
+      "sha256": "d259c80c8af95e20a1c2c910ae05784a1a7cf648a83ecd211b64faad8ba4f952"
+    },
+    {
+      "path": "official-competitor/browser-extension/popup.js",
+      "bytes": 4758,
+      "sha256": "db60cff29495a90d3fb59d98b2744cbbdcf61222c7e1948cf500873e6e25edd0"
+    },
+    {
+      "path": "official-competitor/browser-extension/prepare-characteristics.js",
+      "bytes": 1760,
+      "sha256": "e5b0c9bcef4ae5e01da2c04e76f6821089bdc52e8b07ed3af3c26721ec23807f"
+    },
+    {
+      "path": "official-competitor/browser-extension/progress-view.js",
+      "bytes": 4884,
+      "sha256": "85defe27a82fcd64bda300c74a7241c637ff8ff4d972dc635bf87b19f707e562"
+    },
+    {
+      "path": "official-competitor/browser-extension/selection-filters.js",
+      "bytes": 4951,
+      "sha256": "598b113b2dc55ed4f5422062d76be60a35f1b4abe42a9eadd4023f3a37d36508"
+    },
+    {
+      "path": "official-competitor/browser-extension/seller-copy-runner.js",
+      "bytes": 16033,
+      "sha256": "51b0748d4d73f442f13a9c9b8e2985898cbb120cd8b60a669b8f3c8355ae099b"
+    },
+    {
+      "path": "official-competitor/browser-extension/seller-copy-ui.js",
+      "bytes": 6974,
+      "sha256": "2f3d8f3083cd7575604767523468caeb03dfcf761b7e8e8b8d7844532083321e"
+    },
+    {
+      "path": "official-competitor/browser-extension/seller-sync.js",
+      "bytes": 3995,
+      "sha256": "5e8dcc7ebea37b985b866b1ca70182e9d210cabecfa554f5b8e0af559a5e0a79"
+    },
+    {
+      "path": "official-competitor/browser-extension/seller-visible-reader.js",
+      "bytes": 2535,
+      "sha256": "9fbf5a89c0f4378d9a51b3c7a86e708d16c1cb3f433e30be8853dea78fb587bb"
+    },
+    {
+      "path": "official-competitor/checks/attention_check.cjs",
+      "bytes": 944,
+      "sha256": "17bb8e8bd0f03bfc293e1a06d157889f18db04b42df6536d3c88abfcb24f35ee"
+    },
+    {
+      "path": "official-competitor/checks/auto_queue_check.cjs",
+      "bytes": 2550,
+      "sha256": "48b447ec5fd10fae4d1f75290dac8641e14ab182cdd48d469bf47f9d87142a99"
+    },
+    {
+      "path": "official-competitor/checks/bounded_preparation_check.cjs",
+      "bytes": 1807,
+      "sha256": "ab210040aec9d7ac8b509c9eca809871f7d0ce4e19694a622ad286c3e66264f5"
+    },
+    {
+      "path": "official-competitor/checks/buyer_lazy_browser_check.py",
+      "bytes": 1717,
+      "sha256": "5ef69b36d8c701724d20e79a5d9f4b4afdabfa7f9f33b9c0b28a11c30b9a56e7"
+    },
+    {
+      "path": "official-competitor/checks/delivery_reference_check.cjs",
+      "bytes": 950,
+      "sha256": "a906d5734fd77d4a3bda00e0e6e412d1fbec7f941eee31c0beedff7ad8c68b18"
+    },
+    {
+      "path": "official-competitor/checks/event_schedule_check.cjs",
+      "bytes": 1919,
+      "sha256": "f18fc23f7bfceffb0cff5972d91e8d42c79daa6099a82d7071154de95abb9019"
+    },
+    {
+      "path": "official-competitor/checks/filtered_export_check.cjs",
+      "bytes": 1430,
+      "sha256": "f1ca4b7c2508bd5f08e596503b1bd39521676c6e7f6fb8a994eef6117aa84a40"
+    },
+    {
+      "path": "official-competitor/checks/form_export_policy_check.cjs",
+      "bytes": 1895,
+      "sha256": "0fc31e2bef259d829f856ffb2aadeb3aab8aa250e6f87acf27f7c083a99ef895"
+    },
+    {
+      "path": "official-competitor/checks/form_reader_browser_check.py",
+      "bytes": 4258,
+      "sha256": "e2b766bac53ec8513f9ca07af5b73a6748c2c4de4b3ecb7002dc268f17943b18"
+    },
+    {
+      "path": "official-competitor/checks/integrated_capture_check.cjs",
+      "bytes": 2166,
+      "sha256": "76ef65ee3e9c94ac8fb259a76cb68ab1f3bbd6f7370ed811aa824c551dd04bbe"
+    },
+    {
+      "path": "official-competitor/checks/listing_date_browser_check.py",
+      "bytes": 1040,
+      "sha256": "b478128e8bdb8c2bf877bee64c3f6b18acdb119c9cc3a7b3400a9c288994f208"
+    },
+    {
+      "path": "official-competitor/checks/native_market_browser_check.py",
+      "bytes": 1847,
+      "sha256": "be5c412308f71253bcd0473b4136aa7b66ef434e495fff4768b53171fd29713f"
+    },
+    {
+      "path": "official-competitor/checks/native_market_sync_check.cjs",
+      "bytes": 1323,
+      "sha256": "a6f69846595d084187b890c91bae1f2edfb1c35ede0e3a21681dcbea51947ee6"
+    },
+    {
+      "path": "official-competitor/checks/progress_browser_check.py",
+      "bytes": 2246,
+      "sha256": "860981712895a3cb6fc7de21c399f01a4f997d48190346701da6d00eb014f495"
+    },
+    {
+      "path": "official-competitor/checks/selection_filters_check.cjs",
+      "bytes": 2377,
+      "sha256": "944e8973f090df4dbea24a759e2e8cbaff38047deb6e521ccaeec2eb326d62a1"
+    },
+    {
+      "path": "official-competitor/checks/seller_copy_runner_check.cjs",
+      "bytes": 3490,
+      "sha256": "cf0ab0b8614837cbe7cc7ef3ee339e35f54d3ca21bf8e4b925e7233b6cee8908"
+    },
+    {
+      "path": "official-competitor/checks/seller_copy_ui_browser_check.py",
+      "bytes": 2149,
+      "sha256": "2e9c57348e0a20a6fa7618ed12a2183bfba5ea44a1cffe5e69714168560c5029"
+    },
+    {
+      "path": "official-competitor/checks/seller_sync_check.cjs",
+      "bytes": 1815,
+      "sha256": "eaa7e427b5fce18bc9070e83cd5a48ce9a043e709089ab2f59a28e3bfd3df4e3"
+    },
+    {
+      "path": "official-competitor/checks/seller_visible_browser_check.py",
+      "bytes": 1608,
+      "sha256": "e35a6c2dfc94104323b914bb7e9e6c62464fe3f81a49f721afc7cbdd60af8eac"
+    },
+    {
+      "path": "official-competitor/ozon_operator/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "official-competitor/ozon_operator/__main__.py",
+      "bytes": 861,
+      "sha256": "4f1b5dce0faf75b1b4d8332e7531678894671ae011af5d0c13e4a54cbf3e9fb8"
+    },
+    {
+      "path": "official-competitor/ozon_operator/market_selection.py",
+      "bytes": 2442,
+      "sha256": "949ee7a512059628ecc39f0d571699b1f1cccf0c1ac14b9e547373197195c54b"
+    },
+    {
+      "path": "official-competitor/ozon_operator/official_market_export.py",
+      "bytes": 9709,
+      "sha256": "abad503d9f886b0393c54c6d408bd569d3114f4f0f3e4acc119de57737d367a6"
+    },
+    {
+      "path": "official-competitor/requirements.txt",
+      "bytes": 17,
+      "sha256": "9bba605fd7b6ea23038de15e5a1ae6714b3d3fb14ed2d6e6bedbfb0665ca2122"
+    },
+    {
+      "path": "official-competitor/tests/test_official_market_export.py",
+      "bytes": 4099,
+      "sha256": "827bbc4ce714eef434f8f9824b32db99bc22a5ccd612fae13b43d3493742504b"
+    },
+    {
+      "path": "README.md",
+      "bytes": 1164,
+      "sha256": "8c763ba5abecade2c06d6690b599ed125dcb482835dbfdf2a5dde06deaad19a7"
+    },
+    {
+      "path": "START_HERE.md",
+      "bytes": 862,
+      "sha256": "d142daf9144b1329a5f39a6e20440b0844c12392d8ea1fad2ae1fbf09a1fb4df"
+    },
+    {
+      "path": "backups/README.md",
+      "bytes": 1483,
+      "sha256": "942838f8a7de39f544a06eec60c509f7cb9f417c99539d0bfb73e48bf5ff85a4"
+    },
+    {
+      "path": "backups/CURRENT.json",
+      "bytes": 7156,
+      "sha256": "376c719f43d343abfe3a4f4fd3993533d3b3b87573970a02ce3f483e171608e3"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 113,
+      "sha256": "d32e3cb32edc63eba9aa9bf9d0d217b812def549b9d4c491bf317288ba678539"
+    },
+    {
+      "path": "START_NEW_CHAT.txt",
+      "bytes": 909,
+      "sha256": "1af54982e0c7af24504d2afa5f8ac31f23974ae009bd71b0950e74478798e775"
+    },
+    {
+      "path": "HANDOFF.md",
+      "bytes": 194,
+      "sha256": "88f4ede43c1a4b81842b950e685da2db9991e039944eb89efbdcf374883562cf"
+    },
+    {
+      "path": "backup-20261029/README.md",
+      "bytes": 262,
+      "sha256": "5efc6d4fc3d43ddadc543110ad31807996a410326b0d66e3d841220b620b9465"
+    },
+    {
+      "path": "backup-20261029/HANDOFF.md",
+      "bytes": 129,
+      "sha256": "d9cd6cc6a35e219c259e2ca78eee0cf6447a048a3fe743bdfc945a293303e4b7"
+    },
+    {
+      "path": "backup-20261029/START_NEW_CHAT.txt",
+      "bytes": 909,
+      "sha256": "1af54982e0c7af24504d2afa5f8ac31f23974ae009bd71b0950e74478798e775"
+    }
+  ]
+}

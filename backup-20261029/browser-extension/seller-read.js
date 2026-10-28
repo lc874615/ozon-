@@ -23,6 +23,8 @@ async function readSellerVariant(sku,companyId) {
       fallback_used,observed_at:new Date().toISOString(),response_keys:Object.keys(data).slice(0,20),item_count:items.length,
       items:items.slice(0,50).map(item=>({
         variant_id:item.variant_id??null,
+        brand_name:typeof item.brand_name==='string'?item.brand_name.slice(0,160):null,
+        brand_id:item.brand_id??null,
         item_keys:Object.keys(item).slice(0,40),
         sku_ids:[item.sku,item.sku_id,...(Array.isArray(item.skus)?item.skus:[])].map(v=>typeof v==='object'?v?.sku??v?.sku_id:v).filter(v=>/^\d+$/.test(String(v))).map(String),
         attributes:(Array.isArray(item.attributes)?item.attributes:[]).filter(a=>allow.has(String(a.key))).map(a=>({key:String(a.key),value:String(a.value).slice(0,60)})),

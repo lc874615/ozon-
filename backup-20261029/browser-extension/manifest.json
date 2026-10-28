@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Ozon 买家端采集助手",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "读取Ozon商品参数；仅在本地读取后台公司标识以查询，不导出Cookie。当前详情创建请求已停用。",
   "permissions": [
     "activeTab",

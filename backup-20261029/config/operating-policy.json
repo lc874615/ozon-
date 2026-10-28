@@ -191,5 +191,14 @@
     "prototype_creation_for_collection": "disabled",
     "historical_one_time_test": "user_authorized_for_single_sku_only; saved creation state observed",
     "no_global_batch_creation_authorization": true
+  },
+  "competitor_market_filters": {
+    "fulfilment_required": "FBS",
+    "unbranded_required": true,
+    "missing_brand_is_not_unbranded": true,
+    "sales_period": "rolling_30_days",
+    "exclude_sales_at_most": 5,
+    "monthly_api_period_requires_semantic_verification": true,
+    "unknown_signal": "review_not_pass_and_not_zero"
   }
 }

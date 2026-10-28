@@ -3,6 +3,7 @@ import re
 from decimal import Decimal as D
 from .package_probe import normalize_package_probe
 from .seller_reference import normalize_seller_reference
+from .market_selection import evaluate_market_selection
 
 def parse_scalar(value):
     text=str(value).strip().replace('\u00a0','').replace('\u2009','').replace(' ','').replace(',','.')
@@ -37,17 +38,30 @@ def normalize_buyer_snapshot(s):
             group='packaging_dimensions_cm' if 'упаков' in name else 'product_dimensions_cm'
             out[group][en]=str(cm)
     def money(value):
-        clean=re.sub(r'[\s\u00a0\u2009\u202f₽]','',str(value)).replace(',','.')
+        clean=re.sub(r'[\s\u00a0\u2009\u202f₽¥￥]','',str(value)).replace(',','.')
         return str(D(clean)) if re.fullmatch(r'\d+(?:\.\d+)?',clean) else None
     for widget in s.get('widget_states',[]):
         data=widget.get('data',{})
         if widget.get('id','').startswith('state-webPrice-') and isinstance(data,dict):
             card,normal,original=(money(data.get(k)) for k in ('cardPrice','price','originalPrice'))
-            out['observed_prices']={'currency':'RUB','bank_offer':card,'other_banks':normal,'strikethrough':original,
+            raw_prices=' '.join(str(data.get(k,'')) for k in ('cardPrice','price','originalPrice'))
+            currency_context=' '.join([str(data.get('currency','')),str(data.get('disclaimerPriceHeader','')),
+                str(data.get('disclaimerPriceBodyRs',''))])
+            has_cny=bool(re.search(r'\bCNY\b',currency_context,re.I))
+            has_rub='₽' in raw_prices or bool(re.search(r'\bRUB\b',currency_context,re.I))
+            currency='CNY' if has_cny and not has_rub else 'RUB' if has_rub and not has_cny else 'UNKNOWN'
+            approximate=currency=='CNY' and bool(re.search(r'приблизитель|approx',currency_context,re.I))
+            out['observed_prices']={'currency':currency,'bank_offer':card,'other_banks':normal,'strikethrough':original,
+                'approximate_display_conversion':approximate,
+                'per_unit_display':money(data.get('pricePerUnit')),'per_unit_label':data.get('measurePerUnit'),
                 'source':'Ozon webPrice widget fields; not seller settlement revenue'}
-            if card:
+            if card and currency=='RUB':
                 out['seller_price_reference_rub']=str(D(card)*D('1.10'))
                 out['seller_reference_basis']='user specified card/green price times 1.10; estimate only'
+            elif card and currency=='CNY':
+                out['seller_price_reference_cny_display_estimate']=str(D(card)*D('1.10'))
+                out['todo'].append('ruble_reference_missing_cny_display_is_not_settlement_rate')
+            elif currency=='UNKNOWN':out['todo'].append('price_currency_unverified')
         if widget.get('id','').startswith('state-webGallery-') and isinstance(data,dict):
             out['image_urls'] += [v['src'] for v in data.get('images',[]) if isinstance(v,dict) and v.get('src')]
     out['image_urls']=list(dict.fromkeys(out['image_urls'] or s.get('images',[])))
@@ -65,5 +79,6 @@ def normalize_buyer_snapshot(s):
     out['packaging_complete']=not any(t.startswith('packaging_') for t in out['todo'])
     out['seller_detail_observation']=normalize_seller_reference(s)
     out['todo'].extend(out['seller_detail_observation']['todo'])
+    out['market_selection']=evaluate_market_selection(s)
     out['publication_approved']=False
     return out

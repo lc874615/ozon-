@@ -8,7 +8,7 @@ async function collectOzonSnapshot() {
   if (/доступ ограничен|подтвердите.{0,30}(человек|робот)|проверка безопасности|captcha|验证码|完成验证/i.test(text.slice(0,12000))) {
     return {status:'blocked_verification', source_url:location.href, captured_at:new Date().toISOString()};
   }
-  const characteristics = document.querySelector('[data-widget="webCharacteristics"]');
+  const characteristics = document.querySelector('[data-widget="webCharacteristics"],#section-characteristics');
   const properties = [], seen = new Set();
   const add = (name,value,source) => {
     name=clean(name); value=clean(value);
@@ -19,7 +19,8 @@ async function collectOzonSnapshot() {
   const root=characteristics || document;
   for (const dt of root.querySelectorAll('dt')) {
     const dd=dt.nextElementSibling;
-    if(dd?.tagName==='DD')add(dt.innerText,dd.innerText,'dom:dt-dd');
+    const ddValue=dd?.tagName==='DD'?dd:dt.parentElement?.querySelector('dd');
+    if(ddValue)add(dt.innerText,ddValue.innerText,'dom:dt-dd');
   }
   for (const row of root.querySelectorAll('tr')) {
     const cells=row.querySelectorAll('th,td');
@@ -28,7 +29,7 @@ async function collectOzonSnapshot() {
   const stateWidgets=[];
   // Restrict state to product widgets. Never serialize the global window,
   // cookies, localStorage, checkout or account state.
-  for (const el of document.querySelectorAll('[id^="state-webCharacteristics"], [id^="state-webProductHeading"], [id^="state-webPrice"], [id^="state-webGallery"]')) {
+  for (const el of document.querySelectorAll('[id^="state-webShortCharacteristics"], [id^="state-webCharacteristics"], [id^="state-webProductHeading"], [id^="state-webPrice"], [id^="state-webGallery"]')) {
     const raw=el.getAttribute('data-state') || el.textContent;
     try {stateWidgets.push({id:el.id,data:JSON.parse(raw)});} catch (_) {}
   }
@@ -43,7 +44,7 @@ async function collectOzonSnapshot() {
     }
     Object.values(node).forEach(visit);
   }
-  stateWidgets.filter(w=>w.id.startsWith('state-webCharacteristics')).forEach(w=>visit(w.data));
+  stateWidgets.filter(w=>/^state-web(?:Short)?Characteristics/.test(w.id)).forEach(w=>visit(w.data));
   const gallery=document.querySelector('[data-widget="webGallery"]');
   const images=[...new Set([...(gallery?.querySelectorAll('img') || [])].map(i=>i.currentSrc||i.src).filter(u=>/^https:\/\//.test(u)))];
   const priceText=clean(document.querySelector('[data-widget="webPrice"]')?.innerText);
@@ -53,6 +54,7 @@ async function collectOzonSnapshot() {
     status:properties.length?'attributes_observed':'attributes_missing', properties, images,
     price_widget_text:priceText, price_type_verified:false,
     characteristics_text:clean(characteristics?.innerText).slice(0,30000),
+    diagnostics:{ready_state:document.readyState,characteristics_found:!!characteristics,definition_terms:root.querySelectorAll('dt').length,definition_values:root.querySelectorAll('dd').length,product_widget_names:[...new Set([...document.querySelectorAll('[data-widget]')].map(el=>el.getAttribute('data-widget')).filter(n=>/Characteristics|ProductHeading|Price|Gallery/.test(n)))].slice(0,30)},
     widget_states:stateWidgets, packaging_data_verified:false};
 }
 collectOzonSnapshot();

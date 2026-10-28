@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Ozon 运营采集</title>
 <style>body{font:14px sans-serif;width:370px;padding:12px;line-height:1.5}button{padding:8px;margin:4px}input,textarea{width:95%}pre{white-space:pre-wrap}</style>
-<h3>Ozon 采集与参数工作台 0.4.5</h3>
+<h3>Ozon 采集与参数工作台 0.4.6</h3>
 <label>今日上架目标（仅记录）<input id="target" type="number" min="1" max="1000"></label><button id="save-target">保存今日目标</button>
 <h4>启动前筛选（官方近28天）</h4>
 <label>只选此日期之后上架（不含当天，可留空）<input id="after-date" type="date"></label>
@@ -14,4 +14,4 @@
 <p>自动队列每30秒执行一步，串行打开和读取；页面缺参数、验证或访问错误时暂停，不自动重试。销量、FBS、品牌等未确认时保持待核验，不推断包装数据。</p>
 <h4>卖家端参数导出</h4><label>来源SKU提示<input id="sku-hint" inputmode="numeric"></label><button id="capture-form">读取并导出当前页参数</button>
 <p>仅读取已加载字段，不填表、保存或发布；无法阻止页面自身自动保存。缺失选填参数留空，缺失必填参数进入待办。</p>
-<button id="export">导出筛选通过商品</button><button id="status">查看目标和进度</button><pre id="result"></pre><script src="popup.js"></script></html>
+<button id="export">导出筛选通过商品</button><button id="export-diagnostics">导出采集诊断</button><button id="status">查看目标和进度</button><pre id="result"></pre><script src="popup.js"></script></html>

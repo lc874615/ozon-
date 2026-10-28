@@ -10,10 +10,19 @@ async function sellerCopyUi(command){
  const deleteButtons=exact(['删除草稿','Удалить черновик','Delete draft']);
  const dialogs=[...document.querySelectorAll('[role="dialog"],dialog')].filter(visible);
  const restoreSeen=/您已开始创建商品|您已开始创建产品|Вы начали создание|начали создавать товар/i.test(text);
- const copySearch=/商品复制|Копирование товара|Копирование товаров|Copy product/i.test(clean(document.querySelector('h1')?.innerText));
+ const headings=[...document.querySelectorAll('h1,h2,[role="heading"]')].filter(visible).map(e=>clean(e.innerText));
+ const copyHeading=headings.find(h=>/^(?:商品复制|复制商品|复制现成商品|Копирование товара|Копирование товаров|Copy product)$/i.test(h));
+ const copyRoute=/\/app\/products\/copy(?:\/list)?\/?$/.test(location.pathname);
+ const copySearch=Boolean(copyHeading&&copyRoute);
  const inventory=/\/products\/(?:list|archive)(?:\/|$)/.test(location.pathname);
  if(inventory)return {status:'wrong_page'};
- if(command.action==='inspect')return {status:copySearch&&!deleteButtons.length&&!restoreSeen?'clean_copy_search':'not_clean_copy_search',page:source.origin+source.pathname+source.search,heading:clean(document.querySelector('h1')?.innerText),draft_ids:draftIds};
+ if(command.action==='inspect'){
+  const inputs=[...document.querySelectorAll('input')].filter(e=>visible(e)&&!e.disabled&&['text','search'].includes(e.type));
+  const loginSeen=/\/(?:login|auth)(?:\/|$)/i.test(location.pathname)||[...document.querySelectorAll('input[type="password"]')].some(visible);
+  const inspection={ready_state:document.readyState,path:location.pathname,headings:headings.slice(0,8).map(x=>x.slice(0,160)),copy_heading_found:!!copyHeading,copy_route:copyRoute,visible_search_inputs:inputs.length,input_hints:inputs.slice(0,8).map(e=>({placeholder:clean(e.placeholder).slice(0,160),aria_label:clean(e.getAttribute('aria-label')).slice(0,160),type:e.type})),delete_buttons:deleteButtons.length,restore_seen:restoreSeen,dialog_count:dialogs.length};
+  const status=loginSeen?'seller_login_required':restoreSeen||deleteButtons.length?'existing_draft_state':copySearch&&inputs.length?'clean_copy_search':copyRoute?'copy_search_not_ready':'not_copy_route';
+  return {status,page:source.origin+source.pathname+source.search,heading:copyHeading||headings[0]||'',draft_ids:draftIds,inspection};
+ }
  if(command.action==='search'){
   if(!copySearch||deleteButtons.length||restoreSeen)return {status:'existing_state_do_not_touch'};
   const inputs=[...document.querySelectorAll('input')].filter(e=>visible(e)&&!e.disabled&&['text','search'].includes(e.type));

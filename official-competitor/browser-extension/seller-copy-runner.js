@@ -64,7 +64,17 @@ async function sellerCopyTick(){
   const save=async()=>{const {sellerCopyJob:latest}=await chrome.storage.local.get('sellerCopyJob');if(latest?.id!==j.id||latest.status!=='running')return false;await chrome.storage.local.set({sellerCopyJob:j});return true;};
   const event=(phase,status)=>{j.events.push({phase,status,at:new Date().toISOString()});j.events=j.events.slice(-30);};
   if(Date.now()-j.phase_at>45000)return await finishSellerCopySkip('phase_timeout_'+j.phase);
-  if(j.phase==='init'){const tab=await chrome.tabs.get(j.tab_id);if(tab.status!=='complete'){wakeSellerCopy();return;}const r=await copyUi(j.tab_id,{action:'inspect'});if(r?.status==='blocked_verification')return await stopSellerCopy('verification_required');if(r?.status!=='clean_copy_search')return await finishSellerCopySkip('not_clean_search_no_action');j.phase='search';j.phase_at=Date.now();await save();wakeSellerCopy(500);return;}
+  if(j.phase==='init'){
+   const tab=await chrome.tabs.get(j.tab_id);if(tab.status!=='complete'){wakeSellerCopy();return;}
+   const r=await copyUi(j.tab_id,{action:'inspect'});j.last_ui_inspection=r?.inspection||{status:r?.status};event('inspect',r?.status);
+   if(r?.status==='blocked_verification'||r?.status==='seller_login_required'){await save();return await stopSellerCopy(r.status==='seller_login_required'?'seller_login_access_required':'verification_required');}
+   if(r?.status==='existing_draft_state'){await save();return await finishSellerCopySkip('existing_draft_state_no_action');}
+   if(r?.status!=='clean_copy_search'){
+    await save();if(['copy_search_not_ready','not_copy_route','not_clean_copy_search'].includes(r?.status)&&Date.now()-j.phase_at<25000){wakeSellerCopy(1500);return;}
+    return await finishSellerCopySkip('copy_search_not_ready_after_wait');
+   }
+   j.phase='search';j.phase_at=Date.now();await save();wakeSellerCopy(500);return;
+  }
   if(j.phase==='search'){
    const r=await copyUi(j.tab_id,{action:'search',sku:j.sku});event(j.phase,r?.status);if(r?.status!=='search_entered'){await save();return await stopSellerCopy(r?.status||'search_failed');}
    j.phase='copy';j.phase_at=Date.now();await save();wakeSellerCopy(2500);return;

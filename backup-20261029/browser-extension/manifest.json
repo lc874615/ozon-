@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Ozon \u4e70\u5bb6\u7aef\u91c7\u96c6\u52a9\u624b",
+  "version": "0.3.6",
+  "description": "\u8bfb\u53d6\u5df2\u6253\u5f00\u7684Ozon\u5546\u54c1\u53c2\u6570\uff1b\u6279\u91cf\u91c7\u96c6\u3001\u65ad\u70b9\u4fdd\u5b58\uff0c\u4e0d\u8bfb\u53d6Cookie\u3002",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "downloads",
+    "tabs",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://www.ozon.ru/*",
+    "https://ozon.ru/*",
+    "https://seller.ozon.ru/*",
+    "https://seller.ozonru.cn/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.ozon.ru/product/*",
+        "https://ozon.ru/product/*"
+      ],
+      "js": [
+        "response-monitor.js",
+        "attribute-monitor.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://seller.ozon.ru/*",
+        "https://seller.ozonru.cn/*"
+      ],
+      "js": [
+        "seller-runtime.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

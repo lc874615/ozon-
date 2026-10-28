@@ -1,0 +1,195 @@
+{
+  "fulfilment": {
+    "origin_country": "CN",
+    "handover": "OGL Jiaxing warehouse",
+    "ozon_scheme": "verify_against_store_configuration"
+  },
+  "minimum_margin_on_sales": "0.25",
+  "pricing": {
+    "reference": "verified comparable Ozon offers",
+    "compare": [
+      "specification",
+      "quantity_per_offer",
+      "material",
+      "delivery_time",
+      "buyer_price_conditions"
+    ],
+    "reject_if_market_price_below_minimum_profitable_price": true,
+    "seller_price_from_green_label_multiplier": "1.10",
+    "green_label_conversion_status": "user_provided_estimate_not_settlement_verified"
+  },
+  "excluded_categories": [
+    "medicines",
+    "clothing_and_apparel"
+  ],
+  "required_checks": [
+    "Ozon category permitted",
+    "store category eligibility",
+    "OGL accepts goods",
+    "required product documentation",
+    "verified SKU match",
+    "verified packaging and freight",
+    "applicable actual commission and fees",
+    "image usage rights",
+    "accurate Russian listing content",
+    "fulfillable stock and lead time"
+  ],
+  "costs": [
+    "procurement",
+    "domestic_freight_to_jiaxing",
+    "packaging_and_handling",
+    "OGL_logistics",
+    "platform_commission",
+    "other_applicable_platform_fees",
+    "advertising_allowance",
+    "return_and_loss_allowance",
+    "withdrawal",
+    "FX_conversion_and_reserve",
+    "applicable_taxes"
+  ],
+  "unknown_cost_or_eligibility": "hold_for_verification",
+  "legacy_assumptions": {
+    "commission_10_percent": "unverified_do_not_use_as_actual",
+    "advertising_allowance": "0_by_user_choice",
+    "return_allowance": "return_cost_not_confirmed; goods_loss_reserve=0_by_user_choice",
+    "applicable_taxes": "not_set",
+    "automatic_double_reference_price": "superseded_by_listing_double_rule_target_transaction_price_times_two"
+  },
+  "workflow_goal": "discover_match_price_create_assets_publish",
+  "publication": "only_after_required_checks_pass",
+  "user_confirmed_logistics": {
+    "source": "user confirmation in chat",
+    "confirmed_date": "2026-10-28",
+    "workbook": "OZON官方物流OGL计算表.xlsx",
+    "version_label": "20260611版",
+    "applicable_route": "OGL Jiaxing",
+    "applicability": "user_confirmed_not_independently_verified_latest_official_version",
+    "budget_minimum_kg": "0.501",
+    "premium_minimum_value_rub": "7001",
+    "dimension_sum_limit_inclusive": true,
+    "label_fee_cny_per_parcel": "1.00",
+    "advertising_reserve_rate": "0",
+    "goods_loss_reserve_rate": "0",
+    "returns_fees": "not_confirmed_excluded",
+    "other_additional_fees": "not_confirmed_zero"
+  },
+  "packaging_comparison": {
+    "basis": "same_variant_same_quantity_packaging_gross_only",
+    "weight": "max",
+    "dimensions": "select_complete_dimensions_from_larger_volume_observation",
+    "estimated_envelope_not_actual_package": false,
+    "relative_gap_threshold": "0.20",
+    "gap_denominator": "smaller_value",
+    "threshold_operator": ">",
+    "channel_change_requires_review": true,
+    "missing_suspect_or_mixed_basis_requires_review": true,
+    "volume_tie": "supplier_dimensions",
+    "check_each_source_dimension_limits": true
+  },
+  "required_product_fields": [
+    "material_components",
+    "variant",
+    "quantity",
+    "gross_weight",
+    "packaging_dimensions",
+    "price_type",
+    "source"
+  ],
+  "listing_double_rule": {
+    "source": "explicit_user_correction",
+    "target_price_basis": "intended_50_percent_promotion_transaction_price",
+    "backend_price_multiplier": "2",
+    "planned_promotion_discount": "0.50",
+    "commission_logistics_and_margin_basis": "target_transaction_price",
+    "recalculate_using_double_backend_price": false,
+    "promotion_activation": "user_plans_to_enroll_after_listing; not_verified_active",
+    "promotion_platform_validation_required": true
+  },
+  "user_confirmed_fee_assumptions": {
+    "last_mile_sales_rate": "0.02",
+    "withdrawal_sales_rate": "0.012",
+    "fx_reserve": "0.03",
+    "fx_reserve_method": "reserve 3% of transaction revenue as FX buffer; minimum 25% margin denominator is full transaction revenue",
+    "source": "explicit_user_confirmation",
+    "last_mile_included_in_ogl": "not_established_by_uploaded_workbook",
+    "possible_double_charge_todo": true
+  },
+  "supply_model": {
+    "method": "purchase_from_1688_after_customer_order_then_ship_to_Jiaxing",
+    "supplier_stock_and_processing_time_required": true,
+    "handover_deadline_check_required": true,
+    "do_not_equate_supplier_stock_with_owned_inventory": true
+  },
+  "supplier_selection": {
+    "platform": "1688",
+    "minimum_order_units_max": 1,
+    "one_unit_rule": "selected 1688 SKU minimum order must be one supplier sales unit; match Ozon bundle separately",
+    "image_match": "similar_main_structure_and_matching_material_required_by_user",
+    "material_match_required": true,
+    "variant_and_quantity_match_required": true,
+    "price_basis": "actual_one_unit_SKU_price_not_bulk_tier_or_search_card",
+    "domestic_freight_basis": "use observed 1688 shipping fee; explicit free-shipping signal costs zero per user instruction, no destination-specific gating",
+    "unknown_freight": "hold_not_zero",
+    "ranking": "ascending SKU acquisition price plus verified domestic freight",
+    "mismatch": "user_review_todo",
+    "moq_above_one": "reject_supplier_offer"
+  },
+  "domestic_freight_policy": {
+    "source": "user_instruction",
+    "free_shipping_cost_cny": "0",
+    "destination_verification_required": false,
+    "scope": "user applies uniformly to 1688",
+    "continue_capture_observed_freight": true,
+    "free_and_positive_fee_conflict": "retain raw evidence and create review todo; provisional cost zero per free-shipping policy",
+    "unknown_without_free_shipping_signal": "hold_not_zero"
+  },
+  "product_match_policy": {
+    "dimension_relative_tolerance": "0.02",
+    "dimension_denominator": "smaller_of_compared_measurements",
+    "dimension_threshold_inclusive": true,
+    "dimensions_basis": "corresponding_product_dimensions_not_packaging",
+    "slight_color_difference_allowed": true,
+    "major_color_difference": "review",
+    "main_structure": "must_be_consistent",
+    "material_components": "must_match",
+    "major_functions": "must_match",
+    "unknown_or_conflicting_evidence": "review",
+    "packaging_tolerance_separate": "20% review threshold, larger volume and maximum gross weight for costing"
+  },
+  "image_parameter_policy": {
+    "read_visible_image_parameters": true,
+    "voltage_power_brand": "must_match_after_verified_transcription_and_unit_normalization",
+    "dimension_tolerance_applies_to_electrical_parameters": false,
+    "distinguish": [
+      "AC_DC",
+      "input_output",
+      "rated_peak",
+      "scalar_range"
+    ],
+    "conflicting_image_title_sku_attributes": "review",
+    "missing_or_illegible": "review",
+    "brand_aliases": "no_automatic_inference",
+    "scope": "all identity/specification labels relevant to selected SKU on product, packaging and sales images",
+    "label_inventory_required": true,
+    "non_product_labels": "background, photo watermark and unrelated marketing text recorded separately; not product identity"
+  },
+  "selection_workflow": {
+    "origin": "Ozon buyer market selection first",
+    "sequence": [
+      "collect Ozon candidates",
+      "read exact variant images labels materials price weight dimensions",
+      "filter eligibility and economics",
+      "match 1688 single-unit suppliers",
+      "select lowest acquisition plus freight",
+      "verify margin and create assets",
+      "publish and verify promotion workflow"
+    ],
+    "legacy_chair_group": "validation fixture only; not selection origin"
+  },
+  "browser_detail_policy": {
+    "current_mode": "read_only_with_local_cached_detail",
+    "prototype_creation_for_collection": "disabled",
+    "historical_one_time_test": "user_authorized_for_single_sku_only; saved creation state observed",
+    "no_global_batch_creation_authorization": true
+  }
+}

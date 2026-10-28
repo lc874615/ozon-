@@ -1,0 +1,7 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Ozon采集</title>
+<style>body{font:14px sans-serif;width:360px;padding:12px}button{margin:5px 3px;padding:8px}textarea{width:100%;height:100px}pre{white-space:pre-wrap}</style>
+<h3>Ozon买家端采集</h3><p>读取商品页；遇验证暂停。不会购买或修改商品。</p>
+<button id="capture">采集当前商品</button><button id="export">导出已采集数据</button>
+<p>批量商品链接，每行一个：</p><button id="read-links">读取当前搜索页商品链接</button><textarea id="urls"></textarea>
+<button id="queue">开始批量采集</button><button id="resume">恢复暂停批次</button><button id="status">查看进度</button>
+<pre id="result"></pre><script src="popup.js"></script></html>

@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+attachments/
+evidence/
+checks/reports/
+*.zip
+*.xlsx
+*observations*.json
+*packaging-sync*.json
+playwright-profile*/

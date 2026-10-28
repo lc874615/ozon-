@@ -1,0 +1,89 @@
+{
+  "status": "user_confirmed_reference_for_estimation",
+  "source_sheet": "OGL渠道计算",
+  "excluded_sheet": "1（废弃）",
+  "freight_currency": "CNY",
+  "declared_value_currency": "RUB",
+  "input_weight_unit": "kg",
+  "input_dimensions_unit": "cm",
+  "real_weight_rounding": "ceil_to_0.001kg",
+  "volume_divisor": "12000",
+  "volume_weight_rounding": "no_intermediate_rounding_per_workbook",
+  "final_freight_rounding": "ceil_to_0.01CNY",
+  "label_fee_cny_per_parcel": "1",
+  "extra_or_express_channels": "not_enabled",
+  "channels": [
+    {
+      "name": "ExtraSmall",
+      "min_value_rub": "0",
+      "max_value_rub": "1600",
+      "min_real_kg": ".001",
+      "max_real_kg": ".500",
+      "max_side_cm": 60,
+      "max_sum_cm": 90,
+      "base_cny": "2.8",
+      "cny_per_kg": "24.2",
+      "volumetric": false
+    },
+    {
+      "name": "Budget",
+      "min_value_rub": "0",
+      "max_value_rub": "1600",
+      "min_real_kg": ".501",
+      "max_real_kg": "30",
+      "max_side_cm": 60,
+      "max_sum_cm": 150,
+      "base_cny": "22.2",
+      "cny_per_kg": "16.4",
+      "volumetric": false
+    },
+    {
+      "name": "Small",
+      "min_value_rub": "1501",
+      "max_value_rub": "7200",
+      "min_real_kg": ".001",
+      "max_real_kg": "2",
+      "max_side_cm": 60,
+      "max_sum_cm": 150,
+      "base_cny": "15.5",
+      "cny_per_kg": "24.2",
+      "volumetric": false
+    },
+    {
+      "name": "Big",
+      "min_value_rub": "1501",
+      "max_value_rub": "7200",
+      "min_real_kg": "2.001",
+      "max_real_kg": "30",
+      "max_side_cm": 150,
+      "max_sum_cm": 250,
+      "base_cny": "34.8",
+      "cny_per_kg": "16.4",
+      "volumetric": true
+    },
+    {
+      "name": "PremiumSmall",
+      "min_value_rub": "7001",
+      "max_value_rub": "250000",
+      "min_real_kg": ".001",
+      "max_real_kg": "5",
+      "max_side_cm": 150,
+      "max_sum_cm": 250,
+      "base_cny": "21.3",
+      "cny_per_kg": "24.2",
+      "volumetric": false
+    },
+    {
+      "name": "PremiumBig",
+      "min_value_rub": "7001",
+      "max_value_rub": "250000",
+      "min_real_kg": "5.001",
+      "max_real_kg": "30",
+      "max_side_cm": 150,
+      "max_sum_cm": 310,
+      "base_cny": "60",
+      "cny_per_kg": "22.2",
+      "volumetric": true
+    }
+  ]
+}

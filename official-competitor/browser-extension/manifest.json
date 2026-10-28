@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Ozon 官方来源模式",
+  "version": "0.4.0",
+  "description": "仅导出本机历史资料。网页自动采集、Cookie读取、内部接口及创建请求均已停用。",
+  "permissions": [
+    "storage",
+    "downloads"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

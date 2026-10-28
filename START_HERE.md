@@ -1,7 +1,5 @@
-# Ozon 项目交接备份
+# 当前入口：竞品官方来源文件模式
 
-用户授权于2026-10-29备份代码与交接摘要。先阅读 [HANDOFF.md](backup-20261029/HANDOFF.md)，代码入口与运行方式见 [README.md](backup-20261029/README.md)。
+当前工具与使用说明在 [official-competitor/README.md](official-competitor/README.md)。只处理正常下载的官方报表，按单个竞品SKU离线核验，不联网、不读取Cookie、不创建商品。
 
-完整代码在 `backup-20261029/`。不包含密钥、Cookie、浏览器登录态、原始经营导出或第三方插件源码。
-
-新会话请读取上述交接说明，再检查环境与运行测试。详情创建接口当前已停用，不能把历史单次授权视为批量创建授权。
+此前的日期备份是历史实验快照，不是当前推荐运行方式。请以本入口和 official-competitor 目录为准。

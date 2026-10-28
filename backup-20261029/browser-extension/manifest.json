@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Ozon \u4e70\u5bb6\u7aef\u91c7\u96c6\u52a9\u624b",
+  "name": "Ozon 买家端采集助手",
   "version": "0.3.6",
-  "description": "\u8bfb\u53d6\u5df2\u6253\u5f00\u7684Ozon\u5546\u54c1\u53c2\u6570\uff1b\u6279\u91cf\u91c7\u96c6\u3001\u65ad\u70b9\u4fdd\u5b58\uff0c\u4e0d\u8bfb\u53d6Cookie\u3002",
+  "description": "读取Ozon商品参数；仅在本地读取后台公司标识以查询，不导出Cookie。当前详情创建请求已停用。",
   "permissions": [
     "activeTab",
     "scripting",

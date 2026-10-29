@@ -15,7 +15,14 @@ async function readBuyerProductJson(sku){
   if(!identity.length||identity.some(x=>x!==String(sku)))return {status:'product_identity_not_verified',widget_names:widgets.map(([k])=>k)};
   const images=(gallery?.images||[]).map(x=>x?.src).filter(x=>typeof x==='string'&&/^https:\/\//.test(x));
   let card=typeof price?.cardPrice==='string'?price.cardPrice:null;let reference=null;
-  if(card){const m=card.replace(/\s+/g,'').match(/^(\d+(?:[.,]\d{1,2})?)(¥|￥|CNY)$/i);if(m){const cents=Math.round(Number(m[1].replace(',','.'))*100);reference={value:(Math.round(cents*1.10)/100).toFixed(2),currency:'CNY',observed_bank_price:(cents/100).toFixed(2),source:'explicit_product_json_cardPrice_times_1_10',is_estimate:true};}}
+  const priceReference=(widget)=>{
+   const candidates=typeof widget?.cardPrice==='string'?[{text:widget.cardPrice,factor:1.10,kind:'cardPrice'}]:[{text:widget?.price,factor:1,kind:'price'}];
+   for(const c of candidates){if(typeof c.text!=='string')continue;const m=c.text.replace(/\s+/g,'').match(/^(\d+(?:[.,]\d{1,2})?)(¥|￥|CNY)$/i);if(!m)continue;
+    const cents=Math.round(Number(m[1].replace(',','.'))*100);return {value:(Math.round(cents*c.factor)/100).toFixed(2),currency:'CNY',observed_price:(cents/100).toFixed(2),price_field:c.kind,multiplier:c.factor,source:c.kind==='cardPrice'?'explicit_product_json_cardPrice_times_1_10':'explicit_current_price_no_markup',is_estimate:c.factor!==1};
+   }return null;
+  };
+  reference=priceReference(price);
+
   const timeFragments=[],deliveryDiagnostics={widgets:[],temporal_fields:[],visited_nodes:0,truncated:false};
   const visit=(x,depth,path)=>{
    deliveryDiagnostics.visited_nodes++;if(depth>16||deliveryDiagnostics.visited_nodes>3000){deliveryDiagnostics.truncated=true;return;}
@@ -114,9 +121,7 @@ async function readBuyerProductJson(sku){
   }
   attributes.length=0;
   for(const [name,value]of widgets)if(/^web(?:Short)?Characteristics/.test(name))visitAttributes(value);
-  if(!reference){const extraPrice=widgets.filter(([k,v])=>k.startsWith('webPrice')&&typeof v?.cardPrice==='string').at(-1)?.[1];if(extraPrice){card=extraPrice.cardPrice;
-  if(card){const m=card.replace(/\s+/g,'').match(/^(\d+(?:[.,]\d{1,2})?)(¥|￥|CNY)$/i);if(m){const cents=Math.round(Number(m[1].replace(',','.'))*100);reference={value:(Math.round(cents*1.10)/100).toFixed(2),currency:'CNY',observed_bank_price:(cents/100).toFixed(2),source:'explicit_product_json_cardPrice_times_1_10',is_estimate:true};}}
-  }}
-  return {status:'buyer_json_read',sku:String(sku),identity_verified:true,title:heading?.title||null,images,attributes,reference_price:reference,observed_card_price:card,delivery,widget_names:widgets.map(([key])=>key),source:'normal_buyer_json_api',page_navigation:false};
+  if(!reference){for(const [,v]of widgets.filter(([k])=>k.startsWith('webPrice')).reverse()){const found=priceReference(v);if(found){reference=found;card=typeof v.cardPrice==='string'?v.cardPrice:null;break;}}}
+  return {status:'buyer_json_read',sku:String(sku),identity_verified:true,title:heading?.title||null,images,attributes,reference_price:reference,observed_card_price:card,price_diagnostics:widgets.filter(([k])=>k.startsWith('webPrice')).map(([name,v])=>({name,fields:Object.keys(v||{}).slice(0,40),card_price_type:typeof v?.cardPrice,current_price_type:typeof v?.price})),delivery,widget_names:widgets.map(([key])=>key),source:'normal_buyer_json_api',page_navigation:false};
  }catch(e){return {status:e.name==='AbortError'?'timeout':'read_failed'};}finally{clearTimeout(timer);}
 }

@@ -90,7 +90,7 @@ chrome.runtime.onMessage.addListener((m,s,respond)=>{(async()=>{
  }
  if(m.action==='status'){
   let j=(await chrome.storage.local.get('apiJob')).apiJob;
-  if(j&&!busy&&['running','paused','pausing','terminating'].includes(j.status)){j={...j,status:'interrupted',message:'任务执行进程已结束；进度和账本保留，不能恢复旧任务，可启动新任务'};await chrome.storage.local.set({apiJob:j});}
+  if(j&&!busy&&['running','pausing','terminating'].includes(j.status)){j={...j,status:'interrupted',message:'任务执行进程已结束；进度和账本保留，不能恢复旧任务，可启动新任务'};await chrome.storage.local.set({apiJob:j});}
   return {...(j||{status:'idle'}),runtime_can_control:busy};
  }
  if(m.action==='export'){

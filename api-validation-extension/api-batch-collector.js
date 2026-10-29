@@ -22,11 +22,13 @@ async function collectApiBatch(seedSkus,ports,{filters={},concurrency=2,history=
   if(review.decision==='exclude')return {sku,status:'exclude',review,requests_stage:'buyer'};
   if(blocked.value)return {sku,status:'not_completed_after_batch_pause'};
   const market=await ports.market(sku);if(limited(market)){blocked.value=true;blocked.reason=market.status;return {sku,status:'paused',reason:market.status};}
+  if(market.status==='sku_not_found')return {sku,status:'exclude',reason:'official_analytics_no_record',market};
   if(market.status==='exact_sku_read'&&String(market.sku)===sku)data.properties.push(...(market.properties||[]));
   review=evaluateCaptureFilters(data,filters);if(review.decision==='exclude')return {sku,status:'exclude',review,requests_stage:'market'};
   const missing=mandatorySelectionGaps(review);if(missing.length)return {sku,status:'essential_data_missing',missing,buyer,market,review};
   if(blocked.value)return {sku,status:'not_completed_after_batch_pause'};
   const pack=await ports.packaging(sku,market.variant_id);if(limited(pack)){blocked.value=true;blocked.reason=pack.status;return {sku,status:'paused',reason:pack.status};}
+  if(pack.creation_may_have_occurred){blocked.value=true;blocked.reason='temporary_creation_requires_review';return {sku,status:'paused',packaging:pack};}
   if(pack.status==='http_error')return {sku,status:'packaging_endpoint_error',http_status:pack.http_status,packaging:pack};
   if(!pack.identity_verified||String(pack.requested_sku)!==sku)return {sku,status:'packaging_identity_not_verified',packaging:pack};
   const packaging=extractPackaging({fields:(pack.properties||[]).map(p=>({label:p.name,value:p.value}))});

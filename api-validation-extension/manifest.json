@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Ozon API 本地验证",
-  "version": "0.1.9",
-  "description": "独立API读取验证：全变体、时效>=7天、批量调度；不创建、不改价、不发布。",
+  "version": "0.2.0",
+  "description": "API验证：筛选后临时复制取包装，不清理、不发布、不改价库存。",
   "permissions": [
     "activeTab",
     "scripting",

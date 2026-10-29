@@ -14,7 +14,7 @@ async function readBuyerProductJson(sku){
   const identity=[gallery?.sku,heading?.sku].filter(x=>x!==null&&x!==undefined).map(String);
   if(!identity.length||identity.some(x=>x!==String(sku)))return {status:'product_identity_not_verified',widget_names:widgets.map(([k])=>k)};
   const images=(gallery?.images||[]).map(x=>x?.src).filter(x=>typeof x==='string'&&/^https:\/\//.test(x));
-  const card=typeof price?.cardPrice==='string'?price.cardPrice:null;let reference=null;
+  let card=typeof price?.cardPrice==='string'?price.cardPrice:null;let reference=null;
   if(card){const m=card.replace(/\s+/g,'').match(/^(\d+(?:[.,]\d{1,2})?)(¥|￥|CNY)$/i);if(m){const cents=Math.round(Number(m[1].replace(',','.'))*100);reference={value:(Math.round(cents*1.10)/100).toFixed(2),currency:'CNY',observed_bank_price:(cents/100).toFixed(2),source:'explicit_product_json_cardPrice_times_1_10',is_estimate:true};}}
   const timeFragments=[],deliveryDiagnostics={widgets:[],temporal_fields:[],visited_nodes:0,truncated:false};
   const visit=(x,depth,path)=>{
@@ -85,7 +85,13 @@ async function readBuyerProductJson(sku){
     }
    }
   }
-  if(delivery.minimum_days===null||!widgets.some(([k,v])=>/^web(?:Short)?Characteristics/.test(k)&&Object.keys(v||{}).length)){
+  const attributes=[];
+  const visitAttributes=(node,depth=0)=>{if(!node||typeof node!=='object'||depth>6)return;const label=node.title||node.name;const raw=node.values??node.value;
+   if(typeof label==='string'&&raw!==undefined){const value=typeof raw==='string'||typeof raw==='number'?String(raw):Array.isArray(raw)?raw.map(v=>typeof v==='string'||typeof v==='number'?String(v):v?.text||v?.title||'').filter(Boolean).join('; '):'';if(value)attributes.push({name:label.slice(0,160),value:value.slice(0,2000),source:'product_json_characteristics'});}
+   for(const child of Object.values(node).slice(0,100))if(child&&typeof child==='object')visitAttributes(child,depth+1);
+  };
+  for(const [name,value]of widgets)if(/^web(?:Short)?Characteristics/.test(name))visitAttributes(value);
+  if(delivery.minimum_days===null||attributes.length===0||!reference){
    // This is the additional read-only product-layout request observed in the supplied plugin.
    // Do not execute unknown asyncAction descriptors: they can represent state-changing actions.
    const supplementalPath='/api/entrypoint-api.bx/page/json/v2?'+new URLSearchParams({url:'/product/'+sku+'/?layout_container=pdpPage2column&layout_page_index=2'});
@@ -106,12 +112,11 @@ async function readBuyerProductJson(sku){
     }
    }catch(e){deliveryDiagnostics.supplemental_error=e.name==='AbortError'?'timeout':'response_error';}
   }
-  const attributes=[];
-  const visitAttributes=(node,depth=0)=>{if(!node||typeof node!=='object'||depth>6)return;const label=node.title||node.name;const raw=node.values??node.value;
-   if(typeof label==='string'&&raw!==undefined){const value=typeof raw==='string'||typeof raw==='number'?String(raw):Array.isArray(raw)?raw.map(v=>typeof v==='string'||typeof v==='number'?String(v):v?.text||v?.title||'').filter(Boolean).join('; '):'';if(value)attributes.push({name:label.slice(0,160),value:value.slice(0,2000),source:'product_json_characteristics'});}
-   for(const child of Object.values(node).slice(0,100))if(child&&typeof child==='object')visitAttributes(child,depth+1);
-  };
+  attributes.length=0;
   for(const [name,value]of widgets)if(/^web(?:Short)?Characteristics/.test(name))visitAttributes(value);
+  if(!reference){const extraPrice=widgets.filter(([k,v])=>k.startsWith('webPrice')&&typeof v?.cardPrice==='string').at(-1)?.[1];if(extraPrice){card=extraPrice.cardPrice;
+  if(card){const m=card.replace(/\s+/g,'').match(/^(\d+(?:[.,]\d{1,2})?)(¥|￥|CNY)$/i);if(m){const cents=Math.round(Number(m[1].replace(',','.'))*100);reference={value:(Math.round(cents*1.10)/100).toFixed(2),currency:'CNY',observed_bank_price:(cents/100).toFixed(2),source:'explicit_product_json_cardPrice_times_1_10',is_estimate:true};}}
+  }}
   return {status:'buyer_json_read',sku:String(sku),identity_verified:true,title:heading?.title||null,images,attributes,reference_price:reference,observed_card_price:card,delivery,widget_names:widgets.map(([key])=>key),source:'normal_buyer_json_api',page_navigation:false};
  }catch(e){return {status:e.name==='AbortError'?'timeout':'read_failed'};}finally{clearTimeout(timer);}
 }

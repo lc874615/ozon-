@@ -57,9 +57,10 @@ async function readBuyerProductJson(sku){
      check.query_fields=['product_id','at','sh'].filter(k=>u.searchParams.has(k));
      check.product_id_matches=u.searchParams.get('product_id')===String(sku);
      if(!check.same_origin){check.reason='origin_mismatch';continue;}
+     if(u.pathname==='/pdpGetButtonTexts'){u.pathname=endpoint;check.address_normalized=true;}
      if(u.pathname!==endpoint){check.reason='endpoint_format_unrecognized';continue;}
      if(!check.product_id_matches){check.reason='product_id_missing_or_mismatch';continue;}
-     if(!u.searchParams.get('at')||!u.searchParams.get('sh')){check.reason='dynamic_query_missing';continue;}
+     check.dynamic_query_supplied=!!(u.searchParams.get('at')&&u.searchParams.get('sh')); // Preserve supplied values; never synthesize or reuse tokens.
      const params=action.params,keys=['enableProductViewedExtended','inCartPosition','pageType','toCartPosition'];
      check.param_types=Object.fromEntries(keys.map(k=>[k,typeof params?.[k]]));
      if(!params||keys.some(k=>typeof params[k]!=='string')||params.pageType!=='pdp'){check.reason='payload_missing_or_invalid';continue;}

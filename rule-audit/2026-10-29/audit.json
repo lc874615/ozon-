@@ -1,0 +1,489 @@
+{
+  "checked_at": "2026-10-29T07:31:53.154513+00:00",
+  "client_date": "2026-10-29",
+  "status": "partial_failed_official_pages_inaccessible",
+  "operating_scope": {
+    "origin": "China",
+    "handover": "OGL Jiaxing",
+    "target_margin_on_sales": "25%",
+    "excluded": [
+      "medicines",
+      "clothing_apparel",
+      "platform_or_carrier_prohibited"
+    ]
+  },
+  "confirmed_applicable_rule_changes": [],
+  "official_attachment_baseline": {
+    "source": "https://cdn.ozone.ru/s3/ozon-disk-api/Partner_Delivery/OGL_ENG_CN_24_08_26_added_Pick-up_1786697358.xlsx",
+    "http_status": 200,
+    "sha256": "60b6cefab89b8ab6d72969810aacb8635898f371043d84d530324da2efd255b8",
+    "bytes": 63561,
+    "source_scope": "China OGL; Pick-up and Self-Drop",
+    "filename_version_date": "2026-08-24",
+    "effective_date_verified": false,
+    "latest_version_verified": false,
+    "Jiaxing_service_applicability_verified": false,
+    "tariff_currency_verified": "CNY; Excel number format [$¥-804]",
+    "threshold_currency_columns": [
+      "RUB",
+      "CNY",
+      "USD",
+      "EUR"
+    ],
+    "rule_rows": [
+      {
+        "handling": "上门取件（Pick-up）",
+        "group": "Extra Small",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "2.9",
+        "CNY_per_g": "0.0247",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 1,
+        "max_weight_g": 500,
+        "value_band_RUB_verbatim": "1 - 1500",
+        "value_band_CNY_verbatim": "0.01 - 135",
+        "charge_basis": "实际重量",
+        "volume_formula": "-",
+        "sheet": "中国 OGL",
+        "row": 5
+      },
+      {
+        "handling": "上门取件（Pick-up）",
+        "group": "Budget",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "22.25",
+        "CNY_per_g": "0.0164",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 501,
+        "max_weight_g": 35000,
+        "value_band_RUB_verbatim": "1 - 1500",
+        "value_band_CNY_verbatim": "0.01 - 135",
+        "charge_basis": "实际重量",
+        "volume_formula": "-",
+        "sheet": "中国 OGL",
+        "row": 6
+      },
+      {
+        "handling": "上门取件（Pick-up）",
+        "group": "Small",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "15.48",
+        "CNY_per_g": "0.0242",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 1,
+        "max_weight_g": 2000,
+        "value_band_RUB_verbatim": "1501 - 7000",
+        "value_band_CNY_verbatim": "135. 01 - 635",
+        "charge_basis": "实际重量",
+        "volume_formula": "-",
+        "sheet": "中国 OGL",
+        "row": 7
+      },
+      {
+        "handling": "上门取件（Pick-up）",
+        "group": "Big",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "34.82",
+        "CNY_per_g": "0.0164",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 2001,
+        "max_weight_g": 35000,
+        "value_band_RUB_verbatim": "1501 - 7000",
+        "value_band_CNY_verbatim": "135. 01 - 635",
+        "charge_basis": "实际重量与体积重量中的较大值",
+        "volume_formula": "长 × 宽 × 高（厘米）÷ 12",
+        "sheet": "中国 OGL",
+        "row": 8
+      },
+      {
+        "handling": "上门取件（Pick-up）",
+        "group": "Premium Small",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "21.28",
+        "CNY_per_g": "0.0242",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 1,
+        "max_weight_g": 5000,
+        "value_band_RUB_verbatim": "7001 - 250 000",
+        "value_band_CNY_verbatim": "635.01 - 22 525",
+        "charge_basis": "实际重量",
+        "volume_formula": "-",
+        "sheet": "中国 OGL",
+        "row": 9
+      },
+      {
+        "handling": "上门取件（Pick-up）",
+        "group": "Premium Big",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "59.97",
+        "CNY_per_g": "0.0222",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 5001,
+        "max_weight_g": 35000,
+        "value_band_RUB_verbatim": "7001 - 250 000",
+        "value_band_CNY_verbatim": "635.01 - 22 525",
+        "charge_basis": "实际重量与体积重量中的较大值",
+        "volume_formula": "长 × 宽 × 高（厘米）÷ 12",
+        "sheet": "中国 OGL",
+        "row": 10
+      },
+      {
+        "handling": "卖家自送（Self-Drop）",
+        "group": "Extra Small",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "2.9",
+        "CNY_per_g": "0.0247",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 1,
+        "max_weight_g": 500,
+        "value_band_RUB_verbatim": "1 - 1500",
+        "value_band_CNY_verbatim": "0.01 - 135",
+        "charge_basis": "实际重量",
+        "volume_formula": "-",
+        "sheet": "中国 OGL",
+        "row": 11
+      },
+      {
+        "handling": "卖家自送（Self-Drop）",
+        "group": "Budget",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "22.25",
+        "CNY_per_g": "0.0164",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 501,
+        "max_weight_g": 35000,
+        "value_band_RUB_verbatim": "1 - 1500",
+        "value_band_CNY_verbatim": "0.01 - 135",
+        "charge_basis": "实际重量",
+        "volume_formula": "-",
+        "sheet": "中国 OGL",
+        "row": 12
+      },
+      {
+        "handling": "卖家自送（Self-Drop）",
+        "group": "Small",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "15.48",
+        "CNY_per_g": "0.0242",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 1,
+        "max_weight_g": 2000,
+        "value_band_RUB_verbatim": "1501 - 7000",
+        "value_band_CNY_verbatim": "135. 01 - 635",
+        "charge_basis": "实际重量",
+        "volume_formula": "-",
+        "sheet": "中国 OGL",
+        "row": 13
+      },
+      {
+        "handling": "卖家自送（Self-Drop）",
+        "group": "Big",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "34.82",
+        "CNY_per_g": "0.0164",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 2001,
+        "max_weight_g": 35000,
+        "value_band_RUB_verbatim": "1501 - 7000",
+        "value_band_CNY_verbatim": "135. 01 - 635",
+        "charge_basis": "实际重量与体积重量中的较大值",
+        "volume_formula": "长 × 宽 × 高（厘米）÷ 12",
+        "sheet": "中国 OGL",
+        "row": 14
+      },
+      {
+        "handling": "卖家自送（Self-Drop）",
+        "group": "Premium Small",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "21.28",
+        "CNY_per_g": "0.0242",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 1,
+        "max_weight_g": 5000,
+        "value_band_RUB_verbatim": "7001 - 250 000",
+        "value_band_CNY_verbatim": "635.01 - 22 525",
+        "charge_basis": "实际重量",
+        "volume_formula": "-",
+        "sheet": "中国 OGL",
+        "row": 15
+      },
+      {
+        "handling": "卖家自送（Self-Drop）",
+        "group": "Premium Big",
+        "transit_days_from_dropoff_to_sorting_center": "13-17",
+        "fixed_CNY": "59.97",
+        "CNY_per_g": "0.0222",
+        "currency_evidence": "[$¥-804]#,##0.00",
+        "unit": "1克",
+        "battery_acceptance_table": "允许",
+        "liquid_acceptance_table": "允许",
+        "dimension_condition_verbatim": "长度 ≤ 200",
+        "min_weight_g": 5001,
+        "max_weight_g": 35000,
+        "value_band_RUB_verbatim": "7001 - 250 000",
+        "value_band_CNY_verbatim": "635.01 - 22 525",
+        "charge_basis": "实际重量与体积重量中的较大值",
+        "volume_formula": "长 × 宽 × 高（厘米）÷ 12",
+        "sheet": "中国 OGL",
+        "row": 16
+      }
+    ]
+  },
+  "differences_vs_user_confirmed_reference_not_verified_official_change_history": [
+    {
+      "group": "Extra Small",
+      "old_reference_fixed_CNY": "2.8",
+      "official_attachment_fixed_CNY": "2.9",
+      "fixed_delta_CNY": "0.1",
+      "old_reference_CNY_per_kg": "24.2",
+      "official_attachment_CNY_per_kg": "24.7000",
+      "old_reference_max_weight_kg": ".500",
+      "official_attachment_max_weight_kg": "0.5",
+      "old_reference_value_RUB": [
+        "0",
+        "1600"
+      ],
+      "official_attachment_value_RUB": "1 - 1500",
+      "official_attachment_value_CNY": "0.01 - 135",
+      "old_reference_dimension_limits": {
+        "max_side_cm": 60,
+        "max_sum_cm": 90
+      },
+      "official_attachment_dimension_verbatim": "长度 ≤ 200"
+    },
+    {
+      "group": "Budget",
+      "old_reference_fixed_CNY": "22.2",
+      "official_attachment_fixed_CNY": "22.25",
+      "fixed_delta_CNY": "0.05",
+      "old_reference_CNY_per_kg": "16.4",
+      "official_attachment_CNY_per_kg": "16.4000",
+      "old_reference_max_weight_kg": "30",
+      "official_attachment_max_weight_kg": "35",
+      "old_reference_value_RUB": [
+        "0",
+        "1600"
+      ],
+      "official_attachment_value_RUB": "1 - 1500",
+      "official_attachment_value_CNY": "0.01 - 135",
+      "old_reference_dimension_limits": {
+        "max_side_cm": 60,
+        "max_sum_cm": 150
+      },
+      "official_attachment_dimension_verbatim": "长度 ≤ 200"
+    },
+    {
+      "group": "Small",
+      "old_reference_fixed_CNY": "15.5",
+      "official_attachment_fixed_CNY": "15.48",
+      "fixed_delta_CNY": "-0.02",
+      "old_reference_CNY_per_kg": "24.2",
+      "official_attachment_CNY_per_kg": "24.2000",
+      "old_reference_max_weight_kg": "2",
+      "official_attachment_max_weight_kg": "2",
+      "old_reference_value_RUB": [
+        "1501",
+        "7200"
+      ],
+      "official_attachment_value_RUB": "1501 - 7000",
+      "official_attachment_value_CNY": "135. 01 - 635",
+      "old_reference_dimension_limits": {
+        "max_side_cm": 60,
+        "max_sum_cm": 150
+      },
+      "official_attachment_dimension_verbatim": "长度 ≤ 200"
+    },
+    {
+      "group": "Big",
+      "old_reference_fixed_CNY": "34.8",
+      "official_attachment_fixed_CNY": "34.82",
+      "fixed_delta_CNY": "0.02",
+      "old_reference_CNY_per_kg": "16.4",
+      "official_attachment_CNY_per_kg": "16.4000",
+      "old_reference_max_weight_kg": "30",
+      "official_attachment_max_weight_kg": "35",
+      "old_reference_value_RUB": [
+        "1501",
+        "7200"
+      ],
+      "official_attachment_value_RUB": "1501 - 7000",
+      "official_attachment_value_CNY": "135. 01 - 635",
+      "old_reference_dimension_limits": {
+        "max_side_cm": 150,
+        "max_sum_cm": 250
+      },
+      "official_attachment_dimension_verbatim": "长度 ≤ 200"
+    },
+    {
+      "group": "Premium Small",
+      "old_reference_fixed_CNY": "21.3",
+      "official_attachment_fixed_CNY": "21.28",
+      "fixed_delta_CNY": "-0.02",
+      "old_reference_CNY_per_kg": "24.2",
+      "official_attachment_CNY_per_kg": "24.2000",
+      "old_reference_max_weight_kg": "5",
+      "official_attachment_max_weight_kg": "5",
+      "old_reference_value_RUB": [
+        "7001",
+        "250000"
+      ],
+      "official_attachment_value_RUB": "7001 - 250 000",
+      "official_attachment_value_CNY": "635.01 - 22 525",
+      "old_reference_dimension_limits": {
+        "max_side_cm": 150,
+        "max_sum_cm": 250
+      },
+      "official_attachment_dimension_verbatim": "长度 ≤ 200"
+    },
+    {
+      "group": "Premium Big",
+      "old_reference_fixed_CNY": "60",
+      "official_attachment_fixed_CNY": "59.97",
+      "fixed_delta_CNY": "-0.03",
+      "old_reference_CNY_per_kg": "22.2",
+      "official_attachment_CNY_per_kg": "22.2000",
+      "old_reference_max_weight_kg": "30",
+      "official_attachment_max_weight_kg": "35",
+      "old_reference_value_RUB": [
+        "7001",
+        "250000"
+      ],
+      "official_attachment_value_RUB": "7001 - 250 000",
+      "official_attachment_value_CNY": "635.01 - 22 525",
+      "old_reference_dimension_limits": {
+        "max_side_cm": 150,
+        "max_sum_cm": 310
+      },
+      "official_attachment_dimension_verbatim": "长度 ≤ 200"
+    }
+  ],
+  "commission": {
+    "official_page": "https://global-help.ozon.com/commissions/ozon-fees/commissions/",
+    "access_result": "HTTP503; China-region route redirect loop HTTP307",
+    "live_latest_rules_verified": false,
+    "local_reference": {
+      "filename": "Tarifs_CN_01_12_2025_1761720496.xlsx",
+      "sha256": "be7832ff9dbd09ee7021aaefe9018a02287332bc22e4c6b470d6cfe0b3649cf0",
+      "sheet_scope": [
+        "MP Tree Tarifs CN",
+        "Full ChinaHK"
+      ],
+      "sheet_effective_date_text": "Starts from 01/12/2025",
+      "schemes_in_header": [
+        "RFBS",
+        "FBP"
+      ],
+      "price_tier_currency_not_independently_verified_from_live_official_page": true,
+      "OGL_commission_mapping_verified": false,
+      "authority_status": "user_provided_reference_not_live_official_baseline"
+    }
+  },
+  "prohibited_and_restricted": {
+    "verified_current_complete_list": false,
+    "reason": "Official OGL/fulfillment/prohibited pages unavailable",
+    "battery_liquid_table_only_not_blanket_clearance": true,
+    "restrictions_not_relaxed": true
+  },
+  "profit_impact": {
+    "target_margin": "0.25",
+    "preserved_sales_reserves": {
+      "last_mile": "0.02",
+      "withdrawal": "0.012",
+      "fx": "0.03"
+    },
+    "minimum_price_formula": "P_min=F/(0.688-c)",
+    "same_group_transport_delta_formula": "delta_P_min=delta_F/(0.688-c)",
+    "extra_small_500g_comparison_CNY": {
+      "old_reference": "14.90",
+      "official_attachment": "15.25",
+      "delta": "0.35",
+      "scope": "conditional same-group transportation only; not actual SKU repricing"
+    },
+    "actual_affected_SKUs_recomputed": 0,
+    "recompute_blockers": [
+      "Jiaxing applicability/effective date not confirmed",
+      "all-category applicable OGL commissions not verified",
+      "affected candidate package/fee mapping incomplete"
+    ]
+  },
+  "synchronization": {
+    "previous_active_rules_snapshotted": true,
+    "active_rules_sha256_before": "04eacf71ea1d5f5f36ebc1ade8e7be79aea37c9d25eb292a6b60a45962e55412",
+    "active_rules_sha256_after": "04eacf71ea1d5f5f36ebc1ade8e7be79aea37c9d25eb292a6b60a45962e55412",
+    "verified_artifact_staged": true,
+    "active_shipping_or_commission_rules_replaced": false,
+    "online_prices_inventory_or_publications_changed": false
+  },
+  "access_failures": [
+    {
+      "url": "https://global-help.ozon.com/commissions/ozon-fees/commissions/",
+      "result": "HTTP503"
+    },
+    {
+      "url": "https://global-help.ozon.com/zh/commissions/ozon-fees/commissions?region=CHN",
+      "result": "HTTP307 redirect loop"
+    },
+    {
+      "url": "https://global-help.ozon.com/zh/commissions/ozon-fees/ogl-rates?region=CHN",
+      "result": "HTTP307 redirect loop"
+    },
+    {
+      "url": "https://global-help.ozon.com/zh/fulfillment/ogl/ogl-work-scheme?region=CHN",
+      "result": "web access unavailable"
+    },
+    {
+      "url": "https://global-help.ozon.com/zh/fulfillment/ogl/shipping-from-your-warehouse/self-drop-shipping?region=CHN",
+      "result": "web access unavailable"
+    },
+    {
+      "url": "https://global-help.ozon.com/zh/products/requirements/prohibited-products?region=CHN",
+      "result": "web access unavailable"
+    }
+  ],
+  "notification_required": true,
+  "notification_reason": "official source access failed; baseline incomplete, not a successful no-change check"
+}

@@ -20,10 +20,10 @@ async function autoQueueAction(m){
  const candidates=[...new Map(collectionQueue.filter(u=>buyerSku(u)&&!snapshots[buyerSku(u)]).map(u=>[buyerSku(u),u])).values()];
  const targetMode=m.require_complete_collection===true;
  const urls=targetMode?candidates:candidates.slice(0,limit);
- if(old?.target_pass&&old.reason==='candidate_pool_exhausted_target_unmet'&&JSON.stringify(old.filters)===JSON.stringify(filters)){
+ if(old?.target_pass&&old.status==='paused'&&['candidate_pool_exhausted_target_unmet','user_paused','browser_restarted_click_start_to_resume','extension_updated_click_start_to_resume'].includes(old.reason)&&JSON.stringify(old.filters)===JSON.stringify(filters)){
   const known=new Set(old.urls.map(buyerSku));const added=candidates.filter(u=>!known.has(buyerSku(u)));
-  if(!added.length)return {status:'need_more_candidates',remaining:Math.max(0,old.target_pass-(old.counts?.pass||0))};
-  old.urls.push(...added);old.status='running';old.reason=null;await chrome.storage.local.set({autoQueue:old});await chrome.alarms.create(AUTO_ALARM,{periodInMinutes:0.5});scheduleAutoTick(0);return {status:'target_resumed',remaining:Math.max(0,old.target_pass-(old.counts?.pass||0)),added:added.length};
+  if(!added.length&&old.index>=old.urls.length)return {status:'need_more_candidates',remaining:Math.max(0,old.target_pass-(old.counts?.pass||0))};
+  old.urls.push(...added);old.status='running';old.reason=null;if(old.phase==='read')old.navigated_at=Date.now();await chrome.storage.local.set({autoQueue:old});await chrome.alarms.create(AUTO_ALARM,{periodInMinutes:0.5});scheduleAutoTick(0);return {status:'target_resumed',remaining:Math.max(0,old.target_pass-(old.counts?.pass||0)),added:added.length};
  }
  if(!urls.length)return {status:'queue_complete_or_empty'};
  await chrome.storage.local.set({autoQueue:{status:'running',filters,...(targetMode?{target_pass:limit}:{}),counts:{pass:0,exclude:0,review:0},urls,index:0,phase:'navigate',tabId:null,started_at:new Date().toISOString(),reason:null}});

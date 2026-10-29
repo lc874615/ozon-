@@ -1,4 +1,23 @@
 function parameterSnapshotSignature(form){return JSON.stringify({fields:(form?.fields||[]).map(f=>({label:f.label,value:f.value,units:f.unit_text_candidates||[],section:f.section_heading||''})),readonly:(form?.read_only_attributes||[]).map(f=>({label:f.label,value:f.value}))});}
+function compareParameterForms(before,after){
+ if(!before||!after)return {compatible:false,reason:'parameter_snapshot_missing'};
+ if(before.page?.origin!==after.page?.origin||before.page?.path!==after.page?.path)return {compatible:false,reason:'parameter_page_changed'};
+ const a=extractPackaging(before),b=extractPackaging(after);
+ for(const [k,v] of Object.entries(a.values))if(b.values[k]!==v)return {compatible:false,reason:'packaging_value_changed_or_missing',field:k};
+ const key=f=>f.html_name||f.label||'',value=f=>String(f.value??'').replace(/\s+/g,' ').trim();
+ const previous=new Map((before.fields||[]).map(f=>[key(f),f]));const current=new Map((after.fields||[]).map(f=>[key(f),f]));
+ const added=[],filled=[],changed=[];
+ for(const [k,f]of previous){
+  if(['depth','width','height','weight'].includes(k))continue; // Compared as normalized packaging values above.
+  const next=current.get(k);
+  if(value(f)&&(!next||value(next)!==value(f)))changed.push(k);
+  else if(!value(f)&&next&&value(next))filled.push(k);
+ }
+ for(const k of current.keys())if(!previous.has(k))added.push(k);
+ const oldRefs=before.page?.numeric_references||{},newRefs=after.page?.numeric_references||{};
+ for(const k of Object.keys(oldRefs))if(newRefs[k]!==oldRefs[k])changed.push('page_reference:'+k);
+ return {compatible:changed.length===0,reason:changed.length?'existing_parameter_values_changed':'existing_values_stable',changed_fields:changed,added_fields:added,filled_fields:filled};
+}
 async function sellerAlreadyCollected(sku){
  const {sellerCollectionHistory={},sellerEvidence={},sellerCopyJob:j}=await chrome.storage.local.get(['sellerCollectionHistory','sellerEvidence','sellerCopyJob']);
  if(sellerCollectionHistory[sku])return true;
@@ -144,7 +163,16 @@ async function sellerCopyTick(){
   }
   if(j.phase==='back'){
    const current=(await chrome.scripting.executeScript({target:{tabId:j.tab_id},files:['form-reader.js']}))[0]?.result;
-   if(!current||parameterSnapshotSignature(current)!==j.form_signature)return await finishSellerCopySkip('parameter_form_changed_before_exit');
+   const comparison=compareParameterForms(j.form_snapshot,current);j.exit_form_comparison=comparison;
+   if(!comparison.compatible){await save();return await finishSellerCopySkip('parameter_form_changed_before_exit');}
+   // Extra asynchronously loaded fields are captured without changing the product or packaging.
+   j.exit_form_snapshot=current;
+   const extra=(current.fields||[]).filter(f=>String(f.value??'').trim()&&/^(?:name|category|attribute#\d+)$/.test(f.html_name||'')).map(f=>({name:f.label,value:f.value,attribute_key:f.html_name,source:'exact_sku_copy_form',source_sku:j.sku,captured_at:current.captured_at}));
+   const {sellerEvidence:latestEvidence={}}=await chrome.storage.local.get('sellerEvidence');
+   const combined=[...(latestEvidence[j.sku]||[]),...extra];latestEvidence[j.sku]=[...new Map(combined.map(p=>[(p.attribute_key||p.name)+'|'+p.value,p])).values()];
+   j.captured_form_properties=extra;await chrome.storage.local.set({sellerEvidence:latestEvidence});
+
+
    let r=await copyUi(j.tab_id,{action:'back-from-parameters',form_read_confirmed:true,copy_url:j.copy_url});event('back',r?.status);
    if(r?.status==='back_button_ambiguous_or_missing'&&r.candidates===0&&typeof chrome.tabs.goBack==='function'){j.phase='back_in_flight';if(!await save())return;await chrome.tabs.goBack(j.tab_id);j.back_method='browser_history_one_step_after_verified_parameter_form';r={status:'back_clicked'};event('back','browser_back_triggered');}
    if(r?.status==='blocked_verification')return await stopSellerCopy('verification_required');

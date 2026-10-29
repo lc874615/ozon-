@@ -31,7 +31,36 @@ async function readBuyerProductJson(sku){
   for(const [key,value]of widgets)if(/delivery|shipping|addtocart|orderbutton|oneclick/i.test(key)){
    deliveryDiagnostics.widgets.push({name:key,fields:Object.keys(value).slice(0,40)});visit(value,0,key);
   }
-  const delivery=typeof deliveryReference==='function'?deliveryReference([...new Set(timeFragments)]):{minimum_days:null};delivery.diagnostics=deliveryDiagnostics;
+  let delivery=typeof deliveryReference==='function'?deliveryReference([...new Set(timeFragments)]):{minimum_days:null};delivery.diagnostics=deliveryDiagnostics;
+  const schema=(value,depth=0)=>{
+   if(value===null)return {type:'null'};if(depth>3)return {type:typeof value};
+   if(Array.isArray(value))return {type:'array',length:value.length,first:value.length?schema(value[0],depth+1):null};
+   if(typeof value==='object')return {type:'object',fields:Object.fromEntries(Object.entries(value).slice(0,25).map(([k,v])=>[k,schema(v,depth+1)]))};
+   if(typeof value==='string'&&value.startsWith('/api/'))return {type:'string',api_path:value.split('?')[0]};
+   return {type:typeof value};
+  };
+  deliveryDiagnostics.async_descriptors=widgets.filter(([k])=>/delivery|addtocart/i.test(k)).map(([name,v])=>({name,async_action:schema(v.asyncAction),web_data:schema(v.webData),first_button:schema(v.firstButton)}));
+  if(delivery.minimum_days===null){
+   // This is the additional read-only product-layout request observed in the supplied plugin.
+   // Do not execute unknown asyncAction descriptors: they can represent state-changing actions.
+   const supplementalPath='/api/entrypoint-api.bx/page/json/v2?'+new URLSearchParams({url:'/product/'+sku+'/?layout_container=pdpPage2column&layout_page_index=2'});
+   try{
+    const extraResponse=await fetch(supplementalPath,{credentials:'include',signal:controller.signal});deliveryDiagnostics.supplemental_http_status=extraResponse.status;
+    if([401,403,429].includes(extraResponse.status))return {status:'access_or_rate_limit',http_status:extraResponse.status};
+    if(extraResponse.ok){
+     const extraText=await extraResponse.text();if(extraText.length>4000000)return {status:'response_too_large'};const extraData=JSON.parse(extraText);
+     if(extraData.incidentId||extraData.challengeURL||extraData.blockURL)return {status:'blocked_verification'};
+     const extraWidgets=Object.entries(extraData.widgetStates||{}).flatMap(([key,raw])=>{try{return [[key,typeof raw==='string'?JSON.parse(raw):raw]];}catch{return [];}});
+     for(const [key,value]of extraWidgets){
+      if(/^web(?:Gallery|ProductHeading)/.test(key)&&value?.sku!==undefined&&String(value.sku)!==String(sku))return {status:'product_identity_not_verified'};
+      if(/delivery|shipping|addtocart|orderbutton|oneclick/i.test(key)){
+       deliveryDiagnostics.widgets.push({name:key,source:'supplemental_layout',fields:Object.keys(value||{}).slice(0,40)});visit(value,0,key);deliveryDiagnostics.async_descriptors.push({name:key,source:'supplemental_layout',async_action:schema(value?.asyncAction),web_data:schema(value?.webData),first_button:schema(value?.firstButton)});
+      }
+     }
+     widgets.push(...extraWidgets);delivery=typeof deliveryReference==='function'?deliveryReference([...new Set(timeFragments)]):{minimum_days:null};delivery.diagnostics=deliveryDiagnostics;
+    }
+   }catch(e){deliveryDiagnostics.supplemental_error=e.name==='AbortError'?'timeout':'response_error';}
+  }
   const attributes=[];
   const visitAttributes=(node,depth=0)=>{if(!node||typeof node!=='object'||depth>6)return;const label=node.title||node.name;const raw=node.values??node.value;
    if(typeof label==='string'&&raw!==undefined){const value=typeof raw==='string'||typeof raw==='number'?String(raw):Array.isArray(raw)?raw.map(v=>typeof v==='string'||typeof v==='number'?String(v):v?.text||v?.title||'').filter(Boolean).join('; '):'';if(value)attributes.push({name:label.slice(0,160),value:value.slice(0,2000),source:'product_json_characteristics'});}

@@ -22,13 +22,14 @@ async function readBuyerProductJson(sku){
    if(typeof x==='string'){
     if(x.length<100000&&/^\s*[{[]/.test(x)){try{visit(JSON.parse(x),depth+1,path+'.json');}catch{}}
     const value=x.replace(/<[^>]{0,1000}>/g,' ').replace(/&(?:nbsp|thinsp);|&#160;/gi,' ').replace(/\s+/g,' ');
+    if(/^orderInfo/i.test(path)&&!/(?:достав|delivery|shipping|promise|eta)/i.test(path+' '+value))return;
     const patterns=[/(?:доставим|доставка|через|от)\s*\d+\s*(?:(?:[-–—]|до)\s*\d+\s*)?дн(?:ей|я|ь)/gi,/(?:доставим|доставка)\s+(?:завтра|сегодня)/gi,/\d{1,2}\s*(?:[-–—]\s*\d{1,2}\s*)?(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\s+20\d{2})?/gi];
     for(const pattern of patterns)for(const m of value.matchAll(pattern)){timeFragments.push(m[0]);if(deliveryDiagnostics.temporal_fields.length<80)deliveryDiagnostics.temporal_fields.push({path,time_fragment:m[0]});}
     // Schema-only diagnostics do not include address, contact or arbitrary string values.
     if(/date|time|delivery|promise|eta|when/i.test(path)&&/^20\d{2}-\d{2}-\d{2}(?:T[0-9:.+Z-]+)?$/.test(value)&&deliveryDiagnostics.temporal_fields.length<80)deliveryDiagnostics.temporal_fields.push({path,iso_date:value});
    }else if(x&&typeof x==='object')for(const [key,value]of Object.entries(x).slice(0,200))visit(value,depth+1,path+'.'+key);
   };
-  for(const [key,value]of widgets)if(/delivery|shipping|addtocart|orderbutton|oneclick/i.test(key)){
+  for(const [key,value]of widgets)if(/delivery|shipping|addtocart|orderbutton|oneclick|orderinfo/i.test(key)){
    deliveryDiagnostics.widgets.push({name:key,fields:Object.keys(value).slice(0,40)});visit(value,0,key);
   }
   let delivery=typeof deliveryReference==='function'?deliveryReference([...new Set(timeFragments)]):{minimum_days:null};delivery.diagnostics=deliveryDiagnostics;
@@ -53,7 +54,7 @@ async function readBuyerProductJson(sku){
      const extraWidgets=Object.entries(extraData.widgetStates||{}).flatMap(([key,raw])=>{try{return [[key,typeof raw==='string'?JSON.parse(raw):raw]];}catch{return [];}});
      for(const [key,value]of extraWidgets){
       if(/^web(?:Gallery|ProductHeading)/.test(key)&&value?.sku!==undefined&&String(value.sku)!==String(sku))return {status:'product_identity_not_verified'};
-      if(/delivery|shipping|addtocart|orderbutton|oneclick/i.test(key)){
+      if(/delivery|shipping|addtocart|orderbutton|oneclick|orderinfo/i.test(key)){
        deliveryDiagnostics.widgets.push({name:key,source:'supplemental_layout',fields:Object.keys(value||{}).slice(0,40)});visit(value,0,key);deliveryDiagnostics.async_descriptors.push({name:key,source:'supplemental_layout',async_action:schema(value?.asyncAction),web_data:schema(value?.webData),first_button:schema(value?.firstButton)});
       }
      }

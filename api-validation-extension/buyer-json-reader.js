@@ -10,6 +10,7 @@ async function readBuyerProductJson(sku){
   if(data.incidentId||data.challengeURL||data.blockURL)return {status:'blocked_verification'};
   if(!data.widgetStates||typeof data.widgetStates!=='object')return {status:'product_json_missing'};
   const widgets=Object.entries(data.widgetStates).flatMap(([key,raw])=>{try{const value=typeof raw==='string'?JSON.parse(raw):raw;return value&&typeof value==='object'?[[key,value]]:[];}catch{return [];}});
+  if(widgets.some(([key])=>/^webOutOfStock(?:[-_]|$)/.test(key)))return {status:'product_out_of_stock',requested_sku:String(sku),source:'explicit_webOutOfStock_widget'};
   const get=prefix=>widgets.find(([key])=>key.startsWith(prefix))?.[1];const gallery=get('webGallery'),heading=get('webProductHeading'),price=get('webPrice');
   const identity=[gallery?.sku,heading?.sku].filter(x=>x!==null&&x!==undefined).map(String);
   if(!identity.length||identity.some(x=>x!==String(sku)))return {status:'product_identity_not_verified',widget_names:widgets.map(([k])=>k)};

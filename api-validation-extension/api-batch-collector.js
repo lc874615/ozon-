@@ -15,6 +15,7 @@ async function collectApiBatch(seedSkus,ports,{filters={},concurrency=2,history=
  const queue=[...all];let index=0,qualified=0;
  async function one(sku){
   const buyer=await ports.buyer(sku);if(limited(buyer)){blocked.value=true;blocked.reason=buyer.status;return {sku,status:'paused',reason:buyer.status};}
+  if(buyer.status==='product_out_of_stock')return {sku,status:'exclude',reason:'product_out_of_stock'};
   if(buyer.status!=='buyer_json_read'||buyer.sku!==sku)return {sku,status:'essential_data_missing',field:'buyer_identity'};
   const properties=[];if(buyer.reference_price)properties.push({name:'参考售价估计（人民币）',value:buyer.reference_price.value});
   if(buyer.delivery?.minimum_days!==null&&buyer.delivery?.minimum_days!==undefined)properties.push({name:'参考最短送达天数',value:String(buyer.delivery.minimum_days)});

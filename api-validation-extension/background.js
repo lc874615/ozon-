@@ -43,7 +43,16 @@ async function runValidation(id,seeds,filters,company,concurrency){
     const latest=(await chrome.storage.local.get(key))[key]||{};latest[sku]={...stored[sku],result};await chrome.storage.local.set({[key]:latest});return result;
    }
   };
-  const result=await collectApiBatch(seeds,ports,{filters,concurrency});
+  const {apiJob:current}=await chrome.storage.local.get('apiJob');
+  if(current?.source_mode&&current.source_mode!=='manual'){
+   const found=await call('自动搜索候选SKU',buyer.id,['search-candidates.js'],(mode,value,limit)=>discoverSearchCandidates(mode,value,limit),[current.source_mode,current.source_value,current.candidate_limit]);
+   await saveJob(id,{candidate_discovery:found});
+   if(found.status!=='search_candidates_read'){await saveJob(id,{status:'paused',message:found.status,finished_at:new Date().toISOString()});return;}
+   seeds=found.skus;await saveJob(id,{seeds});
+  }
+  const historyData=(await chrome.storage.local.get('collectionSkuHistory')).collectionSkuHistory||[];
+  const result=await collectApiBatch(seeds,ports,{filters,concurrency,history:new Set(historyData)});
+  await chrome.storage.local.set({collectionSkuHistory:[...new Set([...historyData,...result.results.map(r=>r.sku)])]});
   await saveJob(id,{status:result.paused?'paused':'completed',stage:'验证结束',result,reads,operations,finished_at:new Date().toISOString()});
  }catch(e){await saveJob(id,{status:'error',message:String(e.message||e).slice(0,300),finished_at:new Date().toISOString()});}finally{busy=false;}
 }
@@ -61,10 +70,11 @@ chrome.runtime.onMessage.addListener((m,s,respond)=>{(async()=>{
  }
  if(m.action==='start'){
   if(busy)throw new Error('已有API验证运行，请等待当前测试结束');
-  const seeds=[...new Set(String(m.skus||'').split(/[\s,，;；]+/).filter(Boolean))];if(!seeds.length||seeds.length>5||seeds.some(s=>!/^\d+$/.test(s)))throw new Error('请输入1至5个纯数字SKU，每行一个');
+  const seeds=[...new Set(String(m.skus||'').split(/[\s,，;；]+/).filter(Boolean))];if((!m.source_mode||m.source_mode==='manual')&&(!seeds.length||seeds.length>5||seeds.some(s=>!/^\d+$/.test(s))))throw new Error('请输入1至5个纯数字SKU，每行一个');
   const filters=parseFilterSettings(m.filters||{}),concurrency=Number(m.concurrency||1);if(concurrency!==1)throw new Error('临时复制测试仅允许并发1');
   const company=String(m.company||'').trim();if(company&&!/^\d+$/.test(company))throw new Error('Shop编号应为纯数字，不是API Key');
-  const id=crypto.randomUUID();busy=true;await chrome.storage.local.set({apiJob:{id,status:'running',started_at:new Date().toISOString(),seeds,filters,concurrency,stage:'准备账号读取',operations:0,reads:[]}});
+  if(m.source_mode&&!['manual','keyword','category'].includes(m.source_mode))throw new Error('候选来源无效');if(m.source_mode&&m.source_mode!=='manual'&&!String(m.source_value||'').trim())throw new Error('请输入关键词或类目地址');
+  const id=crypto.randomUUID();busy=true;await chrome.storage.local.set({apiJob:{id,source_mode:m.source_mode||'manual',source_value:String(m.source_value||'').trim(),candidate_limit:Math.max(1,Math.min(5,Number(m.candidate_limit)||5)),status:'running',started_at:new Date().toISOString(),seeds,filters,concurrency,stage:'准备账号读取',operations:0,reads:[]}});
   runValidation(id,seeds,filters,company,concurrency);return {status:'started'};
  }
  throw new Error('Unsupported action');

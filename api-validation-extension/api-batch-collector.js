@@ -33,7 +33,9 @@ async function collectApiBatch(seedSkus,ports,{filters={},concurrency=2,history=
   if(pack.creation_may_have_occurred){blocked.value=true;blocked.reason='temporary_creation_requires_review';return {sku,status:'paused',packaging:pack};}
   if(pack.status==='http_error')return {sku,status:'packaging_endpoint_error',http_status:pack.http_status,packaging:pack};
   if(!pack.identity_verified||String(pack.requested_sku)!==sku)return {sku,status:'packaging_identity_not_verified',packaging:pack};
-  buyer.specification_reference={sku,attributes:buyer.attributes||[],package_quantity:(buyer.attributes||[]).filter(a=>/^(?:Количество в упаковке, шт|Количество предметов в комплекте|包装数量|每套数量)$/i.test(a.name)).map(a=>({label:a.name,value:a.value})),quantity_verified:false,cost_comparison_requires_exact_sku_and_quantity:true};
+  const quantities=(buyer.attributes||[]).filter(a=>/^(?:Количество (?:в упаковке|в комплекте|предметов в комплекте)(?:,?\s*шт\.?)?|包装数量|每套数量|套装数量)$/i.test(String(a.name||'').trim())).map(a=>({label:a.name,value:a.value}));
+  const counts=[...new Set(quantities.map(a=>String(a.value).trim()).filter(v=>/^[1-9]\d*$/.test(v)).map(Number))];
+  buyer.specification_reference={sku,attributes:buyer.attributes||[],package_quantity:quantities,quantity_verified:counts.length===1&&quantities.every(a=>/^[1-9]\d*$/.test(String(a.value).trim())),units_per_sku:counts.length===1&&quantities.every(a=>/^[1-9]\d*$/.test(String(a.value).trim()))?counts[0]:null,quantity_conflict:counts.length>1,cost_comparison_requires_exact_sku_and_quantity:true};
   const packaging=extractPackaging({fields:(pack.properties||[]).map(p=>({label:p.name,value:p.value}))});
   return {sku,status:packaging.complete?'api_data_complete':'packaging_incomplete',buyer,market,packaging,review,note:'not_formally_passed_until_all_business_checks_and_tasks_resolved'};
  }

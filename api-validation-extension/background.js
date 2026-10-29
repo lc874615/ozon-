@@ -88,14 +88,16 @@ chrome.runtime.onMessage.addListener((m,s,respond)=>{(async()=>{
   const seeds=String(m.skus||'').split(/[\s,，;；]+/).filter(x=>/^\d+$/.test(x));const {report}=await requestEnvironment(seeds);
   await chrome.storage.local.set({apiEnvironment:report});await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({version:chrome.runtime.getManifest().version,request_environment:report},null,2)),filename:'ozon-request-environment.json',saveAs:true});return {status:'environment_exported'};
  }
- if(m.action==='status'){
+ if(m.action==='status'||m.action==='status_summary'){
   let j=(await chrome.storage.local.get('apiJob')).apiJob;
   if(j&&!busy&&['running','pausing','terminating'].includes(j.status)){j={...j,status:'interrupted',message:'任务执行进程已结束；进度和账本保留，不能恢复旧任务，可启动新任务'};await chrome.storage.local.set({apiJob:j});}
+  if(m.action==='status_summary'){const counts={};for(const item of j?.result?.results||[])counts[item.status]=(counts[item.status]||0)+1;return {...Object.fromEntries(Object.entries(j||{status:'idle'}).filter(([k])=>!['reads','result','request_environment','candidate_discovery','pending_skus'].includes(k))),result:j?.result?{processed:j.result.processed,discovered:j.result.discovered,pause_reason:j.result.pause_reason}:null,summary_counts:counts,runtime_can_control:busy};}
   return {...(j||{status:'idle'}),runtime_can_control:busy};
  }
  if(m.action==='export'){
   const {apiJob}=await chrome.storage.local.get('apiJob');if(!apiJob)throw new Error('尚无诊断');
-  const report={version:chrome.runtime.getManifest().version,exported_at:new Date().toISOString(),mode:'API_ONLY_LOCAL_VALIDATION',credentials_exported:false,product_creation:true,creation_scope:"temporary_copy_only",cleanup_performed:false,job:apiJob};
+  const compactJob={...apiJob,reads:(apiJob.reads||[]).map(r=>({...r,result:Object.fromEntries(Object.entries(r.result||{}).filter(([k])=>['status','http_status','diagnostics','price_diagnostics','temporary_bundle_id','identity_verified','cleanup_performed','missing_fields','response_metadata'].includes(k)))}))};
+  const report={version:chrome.runtime.getManifest().version,exported_at:new Date().toISOString(),mode:'API_ONLY_LOCAL_VALIDATION',credentials_exported:false,product_creation:true,creation_scope:"temporary_copy_only",cleanup_performed:false,job:compactJob};
   await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(report,null,2)),filename:'ozon-api-validation.json',saveAs:true});return {status:'exported'};
  }
  if(m.action==='start'){

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Ozon API 本地验证",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "API验证：筛选后临时复制取包装，不清理、不发布、不改价库存。",
   "permissions": [
     "activeTab",

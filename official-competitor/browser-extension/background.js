@@ -4,7 +4,7 @@ function currentSnapshotReview(data,filters,sellerEvidence={},listingDateEvidenc
  const enriched=withListingEvidence(withSellerEvidence(withSavedPriceEvidence(data),sellerEvidence),listingDateEvidence);
  const review=evaluateCaptureFilters(enriched,filters);
  if(data.collection_status==='partial'&&review.decision!=='exclude'){review.decision='review';review.checks.push({field:'loaded_attributes',state:'review',evidence:null});}
- return review;
+ return applyCollectionCompleteness(review,data,(sellerEvidence[data.product_id]||data.seller_properties||[]));
 }
 let actionLogChain=Promise.resolve();
 function rememberAction(message,result){

@@ -44,3 +44,13 @@ function withListingEvidence(data,evidence={}){
  const rows=evidence[data.product_id]||[];
  return {...data,properties:[...(data.properties||[]),...rows.map(e=>({name:'listing date',value:e.value,source:e.source,original_label:e.label,source_page:e.source_page,captured_at:e.captured_at}))]};
 }
+
+// Final collection gate is separate from preliminary product eligibility.
+function applyCollectionCompleteness(review,data,sellerProperties=[]){
+ if(!data.seller_stage_required)return review;
+ const packaging=extractPackaging({fields:sellerProperties.map(p=>({label:p.name,value:p.value}))});
+ const outcome=data.seller_collection_outcome||{};
+ const checks=[{field:'buyer_images',state:data.images?.length?'pass':'review',evidence:{count:(data.images||[]).length}},{field:'packaging_complete',state:packaging.complete?'pass':'review',evidence:{values:packaging.values,missing:packaging.missing}},
+ {field:'copy_exit_state',state:outcome.cleanup_required||outcome.status==='disabled'||!data.seller_collection_outcome?'review':'pass',evidence:outcome}];
+ return {...review,checks:[...review.checks,...checks],decision:review.decision==='exclude'?'exclude':review.decision==='review'||checks.some(c=>c.state==='review')?'review':'pass'};
+}

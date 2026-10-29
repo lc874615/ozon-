@@ -116,8 +116,9 @@ async function sellerCopyTick(){
    }
    if(!packaging.complete&&Date.now()-j.phase_at<15000){await save();wakeSellerCopy(2000);return;}
    if(packaging.complete){const {sellerCollectionHistory={}}=await chrome.storage.local.get('sellerCollectionHistory');sellerCollectionHistory[j.sku]={captured_at:new Date().toISOString(),complete:true,field_keys:Object.keys(packaging.values),verified_units:true,job_id:j.id};await chrome.storage.local.set({sellerCollectionHistory});}
+   j.captured_form_properties=(form.fields||[]).filter(f=>String(f.value??'').trim()&&/^(?:name|category|attribute#\d+)$/.test(f.html_name||'')).map(f=>({name:f.label,value:f.value,attribute_key:f.html_name,source:'exact_sku_copy_form',source_sku:j.sku,captured_at:form.captured_at}));
    j.captured_properties=properties;j.draft_id=identity?.draft_ids?.length===1?identity.draft_ids[0]:null;
-   const {sellerEvidence={}}=await chrome.storage.local.get('sellerEvidence');sellerEvidence[j.sku]=[...(sellerEvidence[j.sku]||[]),...properties];await chrome.storage.local.set({sellerEvidence});
+   const {sellerEvidence={}}=await chrome.storage.local.get('sellerEvidence');sellerEvidence[j.sku]=[...(sellerEvidence[j.sku]||[]),...properties,...j.captured_form_properties];await chrome.storage.local.set({sellerEvidence});
    event('read',packaging.complete?'packaging_read':'packaging_'+packaging.status);
    // A search input is not proof that the product parameter form opened.
    const formFields=form?.fields||[],formAttrs=form?.read_only_attributes||[];

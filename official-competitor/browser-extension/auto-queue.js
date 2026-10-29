@@ -1,4 +1,4 @@
-// Only buyer URLs from the user-supplied queue. No retry loop or seller writes.
+// User-started buyer screening followed by scoped seller copy/read/discard; no publication.
 const AUTO_ALARM='ozon-buyer-queue';
 let autoBusy=false,autoTimer=null;
 // Best-effort short scheduling; persisted queue + alarms remain the wake-up fallback.
@@ -12,6 +12,7 @@ async function autoQueueAction(m){
  if(autoBusy)return {status:'busy'};
  const {autoQueue:old,collectionQueue=[],snapshots={},captureFilters={}}=await chrome.storage.local.get(['autoQueue','collectionQueue','snapshots','captureFilters']);
  if(old?.status==='running')return {status:'already_running'};
+ if(m.require_complete_collection){const {sellerCopyConfig:c}=await chrome.storage.local.get('sellerCopyConfig');if(!c?.enabled_in_buyer_queue)return {status:'seller_setup_required',message:'请先在干净的卖家复制搜索页启用流程，再回买家搜索页开始'};}
  const filters=parseFilterSettings(m.filters||captureFilters);
  await chrome.storage.local.set({captureFilters:filters});
  const limit=Number(m.limit||5);if(!Number.isInteger(limit)||limit<1||limit>100)return {status:'error',message:'单批请输入1至100件'};
@@ -39,7 +40,7 @@ async function autoQueueTick(){
   }
   const tab=await chrome.tabs.get(s.tabId);
   if(tab.status!=='complete'){if(Date.now()-s.navigated_at>90000)await pauseAuto('page_load_timeout');else scheduleAutoTick(2000);return;}
-  const result=(await chrome.scripting.executeScript({target:{tabId:s.tabId},files:['price-reader.js','delivery-reference.js','collector.js']}))[0]?.result;
+  const result=s.pending_buyer||(await chrome.scripting.executeScript({target:{tabId:s.tabId},files:['price-reader.js','delivery-reference.js','collector.js']}))[0]?.result;
   if(result?.status==='blocked_verification')return await pauseAuto('verification_required');
   if(result?.product_id!==expected||!result?.title)return await pauseAuto('wrong_or_empty_product_page');
   if(!Array.isArray(result.properties))return await pauseAuto('invalid_collector_result');
@@ -55,7 +56,7 @@ async function autoQueueTick(){
    s.prepare_attempts=(s.prepare_attempts||0)+1;s.last_preparation=prepared.action;
    await chrome.storage.local.set({autoQueue:s});scheduleAutoTick(2500);return;
   }
-  if(!independentlyExcluded){
+  if(!independentlyExcluded&&!s.pending_buyer){
    const market=await syncNativeMarketForSku(expected);
    if(market.pause_required||market.status==='blocked_until_user_handles')return await pauseAuto('seller_market_access_limited');
    await syncSellerVisible(expected);
@@ -63,11 +64,15 @@ async function autoQueueTick(){
    const preliminary=evaluateCaptureFilters(withListingEvidence(withSellerEvidence(result,context.sellerEvidence||{}),context.listingDateEvidence||{}),s.filters);
    result.preliminary_selection=preliminary;
    if(preliminary.decision==='pass'){
-    const sellerFlow=await ensureSellerCopyForSku(expected);
-    if(sellerFlow.status==='waiting'){scheduleAutoTick(2000);return;}
-    if(sellerFlow.status==='paused')return await pauseAuto('seller_verification_or_task_paused');
+    result.seller_stage_required=true;s.pending_buyer=result;await chrome.storage.local.set({autoQueue:s});
    }else result.seller_stage_skipped=preliminary.decision==='exclude'?'preliminary_filter_excluded':'preliminary_filter_needs_evidence';
   }else result.seller_stage_skipped='known_price_or_international_brand_exclusion';
+  if(s.pending_buyer){
+   const sellerFlow=await ensureSellerCopyForSku(expected);
+   if(sellerFlow.status==='waiting'){scheduleAutoTick(2000);return;}
+   if(sellerFlow.status==='paused')return await pauseAuto('seller_verification_or_task_paused');
+   result.seller_collection_outcome=sellerFlow;
+  }
   result.collection_timing={page_elapsed_ms:Date.now()-s.navigated_at,preparation_attempts:s.prepare_attempts||0,captured_at:new Date().toISOString()};
   result.collection_status=attributeCount?'attributes_read':'partial';
   if(!attributeCount)result.collection_issue='attributes_missing_after_bounded_preparation';
@@ -77,6 +82,8 @@ async function autoQueueTick(){
   result.seller_properties=(latest.sellerEvidence||{})[expected]||[];
   result.selection_review=evaluateCaptureFilters(withListingEvidence(withSellerEvidence(result,latest.sellerEvidence||{}),latest.listingDateEvidence||{}),s.filters);
   if(result.collection_status==='partial'){if(result.selection_review.decision!=='exclude')result.selection_review.decision='review';result.selection_review.checks.push({field:'loaded_attributes',state:'review',evidence:null});}
+  result.selection_review=applyCollectionCompleteness(result.selection_review,result,result.seller_properties);
+  delete s.pending_buyer;
   s.counts=s.counts||{pass:0,exclude:0,review:0};s.counts[result.selection_review.decision]++;
   const saved=latest.snapshots||{};saved[expected]=result;s.index++;s.phase='navigate';
   if(s.index===s.urls.length){s.status='completed';s.finished_at=new Date().toISOString();s.reason='collection_only_complete';await chrome.alarms.clear(AUTO_ALARM);}

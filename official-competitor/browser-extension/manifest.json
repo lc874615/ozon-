@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Ozon 采集与参数工作台",
-  "version": "0.5.15",
-  "description": "买家端串行队列采集，验证时暂停，完成后停止；另含卖家当前页参数导出。",
+  "version": "0.5.16",
+  "description": "按已确认规则进行买家筛选、卖家取参、退出与自动换批；不发布商品。",
   "permissions": [
     "activeTab",
     "scripting",
@@ -23,5 +23,5 @@
     "https://seller.ozon.ru/*",
     "https://seller.ozonru.cn/*"
   ],
-  "version_name": "0.5.15 refresh, exclusion and search-page return"
+  "version_name": "0.5.16 confirmed collection rules"
 }

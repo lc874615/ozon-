@@ -14,4 +14,13 @@ with sync_playwright() as p:
  assert page.evaluate('window.saved') is None
  page.set_content('<h1>商品复制</h1><input type=search><div>已选择：1</div><button>继续</button>')
  assert call({'action':'verify-discard','copy_url':target})['status']=='discard_not_confirmed'
+ page.set_content('<h1>商品复制</h1><input type=search placeholder=SKU><dialog open><button id=close>知道了</button></dialog>')
+ page.evaluate("() => {document.getElementById('close').onclick=()=>document.querySelector('dialog').close()}")
+ assert call({'action':'verify-discard','copy_url':target})['status']=='discard_not_confirmed'
+ assert call({'action':'dismiss-return-dialog','return_requested':True})['status']=='return_dialog_closed'
+ assert call({'action':'verify-discard','copy_url':target})['status']=='discard_return_confirmed'
+ page.set_content('<h1>商品复制</h1><input type=search placeholder=SKU><dialog open><button onclick="window.saved=true">保存</button><button onclick="window.deleted=true">删除草稿</button></dialog>')
+ assert call({'action':'dismiss-return-dialog','return_requested':True})['status']=='return_dialog_close_not_identified'
+ assert page.evaluate('window.saved') is None
+ assert page.evaluate('window.deleted') is None
  b.close();print('PASS return URL link triggers discard modal, exact Exit without saving confirmed; selected-product state never counted as clean return; Save untouched')

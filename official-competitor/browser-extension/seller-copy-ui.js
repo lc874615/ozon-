@@ -9,7 +9,7 @@ async function sellerCopyUi(command){
  const source=new URL(location.href);const refs={};for(const k of ['draft_id','draftId','bundle_id','bundleId']){const v=source.searchParams.get(k);if(v&&/^\d+$/.test(v))refs[k]=v;}
  const draftIds=Object.values(refs);
  const deleteButtons=exact(['删除草稿','Удалить черновик','Delete draft']);
- const dialogs=[...document.querySelectorAll('[role="dialog"],dialog')].filter(visible);
+ const dialogs=[...document.querySelectorAll('[role="dialog"],dialog,[aria-modal="true"]')].filter(visible);
  const restoreSeen=/您已开始创建商品|您已开始创建产品|Вы начали создание|начали создавать товар/i.test(text);
  const headings=[...document.querySelectorAll('h1,h2,[role="heading"]')].filter(visible).map(e=>clean(e.innerText));
  const copyHeading=headings.find(h=>/^(?:商品复制|复制商品|复制现成商品|Копирование товара|Копирование товаров|Copy product)$/i.test(h));
@@ -102,11 +102,25 @@ async function sellerCopyUi(command){
   if(discard.length!==1)return {status:'discard_confirmation_not_ready',matches:discard.length};
   discard[0].click();return {status:'discard_clicked'};
  }
+ if(command.action==='dismiss-return-dialog'){
+  if(!command.return_requested||!copySearch||parameterFormDetected)return {status:'not_owned_return_page'};
+  const discard=exact(['退出不保存','退出且不保存','退出并且不保存','退出并不保存','Выйти без сохранения','Выйти и не сохранять','Не сохранять','Exit without saving']);
+  if(discard.length)return {status:'discard_dialog_requires_explicit_exit'};
+  if(!dialogs.length)return {status:'no_return_dialog'};
+  const closeNames=['关闭','知道了','我知道了','稍后','暂不','Close','Got it','Not now','Закрыть','Понятно','Не сейчас','×','✕'];
+  const close=buttons.filter(e=>dialogs.some(d=>d.contains(e))&&!e.disabled&&e.getAttribute('aria-disabled')!=='true'&&closeNames.some(n=>labelKey(n)===labelKey(e.innerText)||labelKey(n)===labelKey(e.getAttribute('aria-label'))));
+  if(close.length!==1)return {status:'return_dialog_close_not_identified',dialog_count:dialogs.length,close_candidates:close.length};
+  close[0].click();return {status:'return_dialog_closed'};
+ }
  if(command.action==='verify-discard'){
   const remaining=exact(['退出不保存','退出且不保存','退出并且不保存','退出并不保存','Выйти без сохранения','Выйти и не сохранять','Не сохранять','Exit without saving']);
-  const inputs=[...document.querySelectorAll('input')].filter(e=>visible(e)&&!e.disabled&&['text','search'].includes(e.type));
+  const inputs=[...document.querySelectorAll('input')].filter(e=>visible(e)&&!e.disabled&&!e.readOnly&&['text','search'].includes(e.type));
+  const hinted=inputs.filter(e=>/sku|商品名称|条形码|ozon链接|артикул|ссылк/i.test((e.placeholder||'')+' '+(e.getAttribute('aria-label')||'')));
+  const searchInputs=hinted.length===1?hinted:inputs.length===1?inputs:[];
+  if(copySearch&&!parameterFormDetected&&!dialogs.length&&searchInputs.length===1)searchInputs[0].scrollIntoView({block:'center',inline:'nearest'});
+  const usable=searchInputs.some(e=>{const rect=e.getBoundingClientRect();const hit=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);return hit===e;});
   let expectedPath=false;try{const u=new URL(command.copy_url);expectedPath=u.origin===source.origin&&u.pathname===source.pathname;}catch{}
-  return {status:expectedPath&&copySearch&&!parameterFormDetected&&!selectedCounts.some(n=>n>0)&&inputs.length&&!remaining.length&&!restoreSeen&&!deleteButtons.length?'discard_return_confirmed':'discard_not_confirmed',verification_scope:'normal_UI_return_after_explicit_discard_not_server_draft_audit'};
+  return {status:expectedPath&&copySearch&&!parameterFormDetected&&!selectedCounts.some(n=>n>0)&&!dialogs.length&&usable&&!remaining.length&&!restoreSeen&&!deleteButtons.length?'discard_return_confirmed':'discard_not_confirmed',verification_scope:'normal_UI_return_after_explicit_discard_not_server_draft_audit',inspection:{path:location.pathname,expected_path_matches:expectedPath,copy_search:copySearch,parameter_form_detected:parameterFormDetected,selected_counts:selectedCounts,restore_seen:restoreSeen,delete_buttons:deleteButtons.length,discard_buttons:remaining.length,visible_search_inputs:inputs.length,visible_dialogs:dialogs.length,search_input_usable:usable}};
  }
  return {status:'unsupported_action'};
 }

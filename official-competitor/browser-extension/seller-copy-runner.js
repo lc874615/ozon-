@@ -41,9 +41,9 @@ async function stopSellerCopy(reason){
 async function finishSellerCopySkip(reason){
  const {sellerCopyJob:j,sellerCopyLedger=[]}=await chrome.storage.local.get(['sellerCopyJob','sellerCopyLedger']);
  if(!j||j.status!=='running')return {status:'no_running_task'};
- j.status='skipped';j.reason=reason;j.cleanup_required=Boolean(j.copy_intent_at&&!(j.deletion_verified||j.discard_verified));j.finished_at=new Date().toISOString();
+ j.reason=reason;j.cleanup_required=Boolean(j.copy_intent_at&&!(j.deletion_verified||j.discard_verified));j.status=j.cleanup_required?'paused':'skipped';j.finished_at=new Date().toISOString();
  if(!sellerCopyLedger.some(e=>e.id===j.id))sellerCopyLedger.push({id:j.id,sku:j.sku,tab_id:j.tab_id,draft_id:j.draft_id||null,cleanup_required:j.cleanup_required,reason,at:j.finished_at});
- await chrome.storage.local.set({sellerCopyJob:j,sellerCopyLedger});await chrome.alarms.clear(COPY_ALARM);await advanceSellerBatch();return {status:'seller_copy_skipped',cleanup_required:j.cleanup_required,reason};
+ await chrome.storage.local.set({sellerCopyJob:j,sellerCopyLedger});await chrome.alarms.clear(COPY_ALARM);if(j.cleanup_required){const {sellerCopyBatch:batch}=await chrome.storage.local.get('sellerCopyBatch');if(batch?.status==='running')await chrome.storage.local.set({sellerCopyBatch:{...batch,status:'paused',reason}});await showVerificationAttention(j.tab_id,'seller_exit','exit_not_confirmed');return {status:'seller_copy_paused',cleanup_required:true,reason};}await advanceSellerBatch();return {status:'seller_copy_skipped',cleanup_required:j.cleanup_required,reason};
 }
 async function startSellerCopyBatch(limit){
  const n=Number(limit||1);if(!Number.isInteger(n)||n<1||n>100)throw new Error('本批件数须为1至100');
@@ -90,7 +90,7 @@ async function startSellerCopy(sku,batchId=null){
  if(await sellerAlreadyCollected(String(sku)))return {status:'seller_already_collected',sku:String(sku)};
  const {sellerCopyConfig:config,sellerCopyJob:old}=await chrome.storage.local.get(['sellerCopyConfig','sellerCopyJob']);
  if(!config)throw new Error('请先在干净复制搜索页启用自动流程');
- if(old?.status==='running')throw new Error('已有任务运行，不能重复复制');
+ if(old?.status==='running'||old?.status==='paused'&&old.cleanup_required)throw new Error('上件任务尚未确认退出，不能开始新的复制');
  const {sellerCopyLedger=[]}=await chrome.storage.local.get('sellerCopyLedger');if(sellerCopyLedger.some(e=>e.sku===String(sku)&&e.cleanup_required))throw new Error('这个SKU已有未清理记录，不再重复复制');
  let taskTab=null,reused=false;
  try{const existing=await chrome.tabs.get(config.tab_id);if(existing?.status==='complete'){const ready=await copyUi(config.tab_id,{action:'inspect'});if(ready?.status==='clean_copy_search'){taskTab=config.automatic_entry&&typeof chrome.tabs.update==='function'?await chrome.tabs.update(config.tab_id,{url:AUTOMATIC_SELLER_COPY_URL}):existing;reused=true;}}}catch{}
@@ -106,7 +106,11 @@ async function sellerCopyTick(){
   const save=async()=>{const {sellerCopyJob:latest}=await chrome.storage.local.get('sellerCopyJob');if(latest?.id!==j.id||latest.status!=='running')return false;await chrome.storage.local.set({sellerCopyJob:j});return true;};
   const event=(phase,status)=>{j.events.push({phase,status,at:new Date().toISOString()});j.events=j.events.slice(-30);};
   const completeReturn=async(scope,mode)=>{
-   j.discard_verified=true;j.discard_verification_scope=scope;j.exit_confirmation_mode=mode;j.cleanup_required=false;j.status=j.packaging_capture?.complete?'completed':'completed_partial';j.reason=j.packaging_capture?.complete?'copy_read_return_ui_verified':'packaging_incomplete_but_exit_confirmed';j.finished_at=new Date().toISOString();event('verify_discard',mode);if(!await save())return;await chrome.alarms.clear(COPY_ALARM);await advanceSellerBatch();
+   j.discard_verified=true;j.discard_verification_scope=scope;j.exit_confirmation_mode=mode;j.cleanup_required=false;j.status=j.packaging_capture?.complete?'completed':'completed_partial';j.reason=j.packaging_capture?.complete?'copy_read_return_ui_verified':'packaging_missing_after_recheck';j.finished_at=new Date().toISOString();event('verify_discard',mode);if(!await save())return;
+   const {sellerCollectionHistory={},sellerCopyLedger=[]}=await chrome.storage.local.get(['sellerCollectionHistory','sellerCopyLedger']);
+   for(const entry of sellerCopyLedger)if(entry.id===j.id){entry.cleanup_required=false;entry.resolution='return_ui_confirmed';entry.resolved_at=j.finished_at;}
+   if(sellerCollectionHistory[j.sku])sellerCollectionHistory[j.sku]={...sellerCollectionHistory[j.sku],exit_confirmed:true,exit_confirmed_at:j.finished_at,exit_scope:scope};
+   await chrome.storage.local.set({sellerCollectionHistory,sellerCopyLedger});await chrome.alarms.clear(COPY_ALARM);await advanceSellerBatch();
   };
   if(Date.now()-j.phase_at>45000)return await finishSellerCopySkip('phase_timeout_'+j.phase);
   if(j.phase==='init'){
@@ -162,8 +166,9 @@ async function sellerCopyTick(){
     if(next?.status==='blocked_verification'){await save();return await stopSellerCopy('verification_required');}
     if(next?.status==='parameter_step_clicked'){j.parameter_step_clicked_at=new Date().toISOString();j.phase_at=Date.now();await save();wakeSellerCopy(2000);return;}
    }
-   if(!packaging.complete&&Date.now()-j.phase_at<15000){await save();wakeSellerCopy(2000);return;}
-   if(packaging.complete){const {sellerCollectionHistory={}}=await chrome.storage.local.get('sellerCollectionHistory');sellerCollectionHistory[j.sku]={captured_at:new Date().toISOString(),complete:true,field_keys:Object.keys(packaging.values),verified_units:true,job_id:j.id};await chrome.storage.local.set({sellerCollectionHistory});}
+   if(!packaging.complete&&!j.packaging_recheck_at){j.packaging_recheck_at=new Date().toISOString();await save();wakeSellerCopy(2000);return;}
+   if(!packaging.complete)j.packaging_recheck_failed=true;
+   if(packaging.complete){const {sellerCollectionHistory={}}=await chrome.storage.local.get('sellerCollectionHistory');sellerCollectionHistory[j.sku]={captured_at:new Date().toISOString(),complete:true,exit_confirmed:false,field_keys:Object.keys(packaging.values),verified_units:true,job_id:j.id};await chrome.storage.local.set({sellerCollectionHistory});}
    j.captured_form_properties=(form.fields||[]).filter(f=>String(f.value??'').trim()&&/^(?:name|category|attribute#\d+)$/.test(f.html_name||'')).map(f=>({name:f.label,value:f.value,attribute_key:f.html_name,source:'exact_sku_copy_form',source_sku:j.sku,captured_at:form.captured_at}));
    j.captured_properties=properties;j.draft_id=identity?.draft_ids?.length===1?identity.draft_ids[0]:null;
    const {sellerEvidence={}}=await chrome.storage.local.get('sellerEvidence');sellerEvidence[j.sku]=[...(sellerEvidence[j.sku]||[]),...properties,...j.captured_form_properties];await chrome.storage.local.set({sellerEvidence});
@@ -185,7 +190,9 @@ async function sellerCopyTick(){
    const extra=(current.fields||[]).filter(f=>String(f.value??'').trim()&&/^(?:name|category|attribute#\d+)$/.test(f.html_name||'')).map(f=>({name:f.label,value:f.value,attribute_key:f.html_name,source:'exact_sku_copy_form',source_sku:j.sku,captured_at:current.captured_at}));
    const {sellerEvidence:latestEvidence={}}=await chrome.storage.local.get('sellerEvidence');
    const combined=[...(latestEvidence[j.sku]||[]),...extra];latestEvidence[j.sku]=[...new Map(combined.map(p=>[(p.attribute_key||p.name)+'|'+p.value,p])).values()];
-   j.captured_form_properties=extra;await chrome.storage.local.set({sellerEvidence:latestEvidence});
+   j.captured_form_properties=extra;
+   j.catalogue_todos=(current.fields||[]).filter(f=>(f.required_explicit||f.required_marker_seen)&&/^(?:attribute#\d+|brand|name|category)$/.test(f.html_name||'')&&!String(f.value??'').trim()&&!(f.html_name==='brand'&&(latestEvidence[j.sku]||[]).some(p=>/^(?:品牌|brand|бренд)$/i.test(p.name||'')&&String(p.value||'').trim()))).map(f=>({code:'required_catalogue_parameter_missing',field:f.label,attribute_key:f.html_name}));
+   await chrome.storage.local.set({sellerEvidence:latestEvidence});
 
 
    if(typeof chrome.tabs.update==='function'){
@@ -204,11 +211,21 @@ async function sellerCopyTick(){
   }
   if(j.phase==='return_search_in_flight')return await finishSellerCopySkip('return_navigation_result_unknown_no_retry');
   if(j.phase==='discard'){
+   const pageTab=await chrome.tabs.get(j.tab_id);if(pageTab.status!=='complete'){wakeSellerCopy(1000);return;}
+   if(j.return_to_search_requested){
+    const close=await copyUi(j.tab_id,{action:'dismiss-return-dialog',return_requested:true});j.last_return_popup=close;
+    if(close?.status==='blocked_verification')return await stopSellerCopy('verification_required');
+    if(close?.status==='return_dialog_closed'){
+     j.return_clean_checks=0;j.return_popup_closes=(j.return_popup_closes||0)+1;event('close_return_popup',close.status);
+     if(j.return_popup_closes>3){await save();return await finishSellerCopySkip('repeated_return_popup');}
+     await save();wakeSellerCopy(700);return;
+    }
+   }
    if(j.return_to_search_requested){
     const tab=await chrome.tabs.get(j.tab_id);if(tab.status!=='complete'){wakeSellerCopy(1000);return;}
-    const clean=await copyUi(j.tab_id,{action:'verify-discard',copy_url:j.copy_url});
+    const clean=await copyUi(j.tab_id,{action:'verify-discard',copy_url:j.copy_url});j.last_return_verification=clean;await save();
     if(clean?.status==='blocked_verification')return await stopSellerCopy('verification_required');
-    if(clean?.status==='discard_return_confirmed')return await completeReturn('normal_UI_clean_search_after_owned_navigation_no_dialog_not_server_draft_audit','clean_search_return_no_discard_dialog');
+    if(clean?.status==='discard_return_confirmed'){j.return_clean_checks=(j.return_clean_checks||0)+1;if(j.return_clean_checks<2){await save();wakeSellerCopy(700);return;}return await completeReturn('normal_UI_clean_search_after_owned_navigation_no_dialog_not_server_draft_audit','clean_search_return_no_discard_dialog');}else j.return_clean_checks=0;
    }
    j.phase='discard_in_flight';if(!await save())return;
    const r=await copyUi(j.tab_id,{action:'discard-unsaved',back_clicked:!!j.back_clicked_at});event('discard',r?.status);
@@ -220,9 +237,18 @@ async function sellerCopyTick(){
    j.phase='verify_discard';j.phase_at=Date.now();j.discard_clicked_at=new Date().toISOString();await save();wakeSellerCopy(700);return;
   }
   if(j.phase==='verify_discard'){
-   const r=await copyUi(j.tab_id,{action:'verify-discard',copy_url:j.copy_url});
+   const pageTab=await chrome.tabs.get(j.tab_id);if(pageTab.status!=='complete'){wakeSellerCopy(1000);return;}
+   const close=await copyUi(j.tab_id,{action:'dismiss-return-dialog',return_requested:true});j.last_return_popup=close;
+   if(close?.status==='blocked_verification')return await stopSellerCopy('verification_required');
+   if(close?.status==='return_dialog_closed'){
+    j.return_clean_checks=0;j.return_popup_closes=(j.return_popup_closes||0)+1;event('close_return_popup',close.status);
+    if(j.return_popup_closes>3){await save();return await finishSellerCopySkip('repeated_return_popup');}
+    await save();wakeSellerCopy(700);return;
+   }
+   const r=await copyUi(j.tab_id,{action:'verify-discard',copy_url:j.copy_url});j.last_return_verification=r;await save();
    if(r?.status==='blocked_verification')return await stopSellerCopy('verification_required');
-   if(r?.status!=='discard_return_confirmed'){wakeSellerCopy(1000);return;}
+   if(r?.status!=='discard_return_confirmed'){j.return_clean_checks=0;await save();wakeSellerCopy(1000);return;}
+   j.return_clean_checks=(j.return_clean_checks||0)+1;if(j.return_clean_checks<2){await save();wakeSellerCopy(700);return;}
    return await completeReturn(r.verification_scope,'explicit_exit_without_saving');
   }
   return await stopSellerCopy('unsupported_workflow_phase');
@@ -237,9 +263,10 @@ async function ensureSellerCopyForSku(sku){
  await ensureAutomaticSellerEntry();
  const {sellerCopyConfig:config,sellerCopyJob:j,sellerCopyBatch:b}=await chrome.storage.local.get(['sellerCopyConfig','sellerCopyJob','sellerCopyBatch']);
  if(!config?.enabled_in_buyer_queue)return {status:'disabled'};
- if(j?.sku===sku){if(j.status==='running')return {status:'waiting'};if(j.status==='paused')return {status:'paused'};if(['completed','completed_partial','skipped'].includes(j.status))return {status:'done',terminal_status:j.status,reason:j.reason,discard_verified:j.discard_verified===true,cleanup_required:j.cleanup_required};}
+ if(j?.status==='paused'&&j.cleanup_required)return {status:'paused'};
+ if(j?.sku===sku){if(j.status==='running')return {status:'waiting'};if(j.status==='paused')return {status:'paused'};if(['completed','completed_partial','skipped'].includes(j.status))return {status:'done',terminal_status:j.status,reason:j.reason,discard_verified:j.discard_verified===true,cleanup_required:j.cleanup_required,collection_todos:j.catalogue_todos||[]};}
  if(j?.status==='running')return {status:'waiting'};
- if(await sellerAlreadyCollected(sku))return {status:'done',already_collected:true};
+ if(await sellerAlreadyCollected(sku)){const {sellerCollectionHistory={}}=await chrome.storage.local.get('sellerCollectionHistory');const verified=sellerCollectionHistory[sku]?.exit_confirmed===true;return {status:'done',already_collected:true,discard_verified:verified,cleanup_required:!verified};}
  if(b?.status==='running')return {status:'waiting'};
  const {sellerCopyLedger=[]}=await chrome.storage.local.get('sellerCopyLedger');if(sellerCopyLedger.some(e=>e.sku===sku&&e.cleanup_required))return {status:'done',cleanup_required:true};
  await startSellerCopy(sku);return {status:'waiting'};

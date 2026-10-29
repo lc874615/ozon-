@@ -58,15 +58,7 @@ async function collectOzonSnapshot() {
   const attributePropertyCount=properties.length;
   const gallery=document.querySelector('[data-widget="webGallery"]');
   const images=[...new Set([...(gallery?.querySelectorAll('img') || [])].map(i=>i.currentSrc||i.src).filter(u=>/^https:\/\//.test(u)))];
-  const deliveryWidgets=[...document.querySelectorAll('[data-widget]')].filter(el=>/delivery|shipping|logistic|currentseller|offerwarehouse|transport/i.test(el.getAttribute('data-widget')||''));
-  const deliveryTexts=[];
-  for(const el of deliveryWidgets){
-    const text=clean(el.innerText).slice(0,12000);
-    const patterns=[/(?:через|от|доставка[:：]?|送达|预计送达)\s*\d+\s*(?:[–—-]\s*\d+\s*)?(?:дн(?:ей|я|ь)|days?|天)/gi,/\d{1,2}\s*(?:[–—-]\s*\d{1,2}\s*)?(?:января|февраля|марта|апреля|мая|июня|июля|августа|сентября|октября|ноября|декабря)(?:\s+20\d{2})?/gi,/(?:^|\s)(?:завтра|сегодня)(?=\s|$|[,.])/gi];
-    for(const pattern of patterns)for(const m of text.matchAll(pattern))if(!deliveryTexts.includes(clean(m[0])))deliveryTexts.push(clean(m[0]));
-  }
-
-  const delivery=typeof deliveryReference==='function'?deliveryReference(deliveryTexts):{minimum_days:null,evidence:[],actual_fulfillment_scheme_verified:false};
+  const delivery=typeof readBuyerDelivery==='function'?readBuyerDelivery(document):{texts:[],minimum_days:null,evidence:[],widget_names:[],note:'delivery_reader_not_loaded'};
   if(delivery.minimum_days!==null)add('参考最短送达天数',String(delivery.minimum_days),'buyer_delivery_reference');
   const priceText=clean(document.querySelector('[data-widget="webPrice"]')?.innerText);
   let priceObservation=typeof readOzonPriceWidget==='function'?readOzonPriceWidget(document.querySelector('[data-widget="webPrice"]')):null;
@@ -78,8 +70,8 @@ async function collectOzonSnapshot() {
     status:attributePropertyCount?'attributes_observed':'attributes_missing',attribute_property_count:attributePropertyCount,properties,images,
     price_widget_text:priceText,price_observation:priceObservation,price_type_verified:false,
     characteristics_text:clean(characteristics?.innerText).slice(0,30000),
-    delivery_observation:{texts:deliveryTexts,...delivery,widget_names:deliveryWidgets.map(e=>e.getAttribute('data-widget')),note:deliveryTexts.length?'time_fragments_only_no_destination_address':deliveryWidgets.length?'widget_found_but_no_supported_time_phrase':'no_matching_widget; not proof page has no delivery info'},
-    diagnostics:{ready_state:document.readyState,characteristics_found:!!characteristics,full_characteristics_loaded:!!characteristics&&characteristics.querySelectorAll('dt,tr').length>0,short_characteristics_text:clean(shortCharacteristics?.innerText).slice(0,5000),short_characteristics_html:shortCharacteristics?.innerHTML.slice(0,12000)||null,definition_terms:root.querySelectorAll('dt').length,definition_values:root.querySelectorAll('dd').length,price_widget_html:document.querySelector('[data-widget="webPrice"]')?.innerHTML.slice(0,12000)||null,product_widget_names:[...new Set([...document.querySelectorAll('[data-widget]')].map(el=>el.getAttribute('data-widget')).filter(n=>/Characteristics|ProductHeading|Price|Gallery|Delivery|Shipping|Seller|Logistic|Available|Location/i.test(n)))].slice(0,60)},
+    delivery_observation:delivery,
+    diagnostics:{available_widget_names:[...new Set([...document.querySelectorAll('[data-widget]')].map(el=>el.getAttribute('data-widget')).filter(Boolean))].slice(0,120),ready_state:document.readyState,characteristics_found:!!characteristics,full_characteristics_loaded:!!characteristics&&characteristics.querySelectorAll('dt,tr').length>0,short_characteristics_text:clean(shortCharacteristics?.innerText).slice(0,5000),short_characteristics_html:shortCharacteristics?.innerHTML.slice(0,12000)||null,definition_terms:root.querySelectorAll('dt').length,definition_values:root.querySelectorAll('dd').length,price_widget_html:document.querySelector('[data-widget="webPrice"]')?.innerHTML.slice(0,12000)||null,product_widget_names:[...new Set([...document.querySelectorAll('[data-widget]')].map(el=>el.getAttribute('data-widget')).filter(n=>/Characteristics|ProductHeading|Price|Gallery|Delivery|Shipping|Seller|Logistic|Available|Location/i.test(n)))].slice(0,60)},
     widget_states:stateWidgets, packaging_data_verified:false};
 }
 collectOzonSnapshot();

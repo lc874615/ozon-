@@ -1,5 +1,5 @@
 // User-started collection and scoped seller UI flow; no publication actions.
-importScripts('price-reader.js','packaging-reader.js','local-reparse.js','attention.js','selection-filters.js','seller-sync.js','native-market-sync.js','auto-queue.js','seller-copy-runner.js');
+importScripts('price-reader.js','packaging-reader.js','local-reparse.js','attention.js','selection-filters.js','seller-sync.js','native-market-sync.js','auto-queue.js','seller-copy-runner.js','search-refill.js');
 function currentSnapshotReview(data,filters,sellerEvidence={},listingDateEvidence={}){
  const enriched=withListingEvidence(withSellerEvidence(withSavedPriceEvidence(data),sellerEvidence),listingDateEvidence);
  const review=evaluateCaptureFilters(enriched,filters);
@@ -29,7 +29,8 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     if(message.action==='pause-seller-copy')return stopSellerCopy('user_paused');
     if(message.action==='resume-seller-copy'){
       const {sellerCopyJob:j,sellerCopyBatch:b}=await store.get(['sellerCopyJob','sellerCopyBatch']);if(!j||j.status!=='paused')throw new Error('没有暂停的卖家任务');
-      if(!/verification|access|denied|403|429/i.test(j.reason||''))throw new Error('此暂停原因需要先检查诊断，不能自动重试创建/删除');
+      if(!j.cleanup_required&&!/verification|access|denied|403|429/i.test(j.reason||''))throw new Error('此暂停原因需要先检查诊断，不能自动重试创建/删除');
+      if(j.cleanup_required)j.phase='verify_discard';
       if(/in_flight|uncertain/.test(j.phase))throw new Error('上次操作结果不明确，不能重复执行');
       j.status='running';j.reason=null;j.phase_at=Date.now();if(b?.status==='paused')b.status='running';await store.set({sellerCopyJob:j,...(b?{sellerCopyBatch:b}:{}),verificationAttention:null});await chrome.action.setBadgeText({text:''});await chrome.alarms.create(COPY_ALARM,{periodInMinutes:0.5});wakeSellerCopy(0);const {autoQueue:q}=await store.get('autoQueue');if(q?.status==='paused'&&q.reason==='seller_verification_or_task_paused'){q.status='running';q.reason=null;await store.set({autoQueue:q});await chrome.alarms.create(AUTO_ALARM,{periodInMinutes:0.5});scheduleAutoTick(2000);}return {status:'seller_copy_resumed'};
     }
@@ -65,6 +66,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
       await store.set({snapshots});return {status:data.status,sku:data.product_id,properties:data.properties.length,collected:Object.keys(snapshots).length,packaging_verified:false};
     }
     if(message.action==='read-links'||message.action==='save-queue'){
+      if(message.action==='read-links')await captureBuyerSearchSource();
       const raw=message.action==='read-links'?await run('link-reader.js'):String(message.links||'').split(/\s+/);
       const clean=[...new Set(raw.map(validLink).filter(Boolean))];
       const {collectionQueue=[]}=await store.get('collectionQueue');const queue=[...new Set([...collectionQueue,...clean])].slice(0,1000);
@@ -105,8 +107,8 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
       await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-filtered-observations.json',saveAs:true});
       return {status:'historical_data_exported'};
     }
-    if(message.action==='status'){const {dailyGoal=null,collectionQueue=[],snapshots={},autoQueue=null,sellerSync=null,sellerCopyJob=null,sellerCopyBatch=null,verificationAttention=null,nativeMarketLast=null,actionTrace=[],sellerCopyConfig=null}=await store.get(['dailyGoal','collectionQueue','snapshots','autoQueue','sellerSync','sellerCopyJob','sellerCopyBatch','verificationAttention','nativeMarketLast','actionTrace','sellerCopyConfig']);const batchIds=(autoQueue?.urls||[]).map(u=>u.match(/(?:-|\/)(\d+)\/?$/)?.[1]);const records=batchIds.map(id=>snapshots[id]).filter(Boolean);const buyerBatchStats={saved:records.length,properties:records.reduce((n,d)=>n+(d.properties||[]).length,0),with_images:records.filter(d=>d.images?.length).length,with_price_text:records.filter(d=>d.price_widget_text).length};return {lastOperation:actionTrace.at(-1)||null,seller_automation_enabled:!!sellerCopyConfig?.enabled_in_buyer_queue,nativeMarketLast,sellerCopyJob,sellerCopyBatch,verificationAttention,sellerSync,buyerBatchStats,autoQueue,dailyGoal,queued:collectionQueue.length,collected:Object.keys(snapshots).length,mode:'user_clicked_current_form_export',version:chrome.runtime.getManifest().version,
-      automatic_website_requests:'only user-started buyer queue',cookie_access:false,automatic_form_changes:false};}
+    if(message.action==='status'){const {dailyGoal=null,collectionQueue=[],snapshots={},autoQueue=null,sellerSync=null,sellerCopyJob=null,sellerCopyBatch=null,verificationAttention=null,nativeMarketLast=null,actionTrace=[],sellerCopyConfig=null}=await store.get(['dailyGoal','collectionQueue','snapshots','autoQueue','sellerSync','sellerCopyJob','sellerCopyBatch','verificationAttention','nativeMarketLast','actionTrace','sellerCopyConfig']);const batchIds=(autoQueue?.urls||[]).map(u=>u.match(/(?:-|\/)(\d+)\/?$/)?.[1]);const records=batchIds.map(id=>snapshots[id]).filter(Boolean);const buyerBatchStats={saved:records.length,properties:records.reduce((n,d)=>n+(d.properties||[]).length,0),with_images:records.filter(d=>d.images?.length).length,with_price_text:records.filter(d=>d.price_widget_text).length};return {lastOperation:actionTrace.at(-1)||null,seller_automation_enabled:!!sellerCopyConfig?.enabled_in_buyer_queue,nativeMarketLast,sellerCopyJob,sellerCopyBatch,verificationAttention,sellerSync,buyerBatchStats,autoQueue,dailyGoal,queued:collectionQueue.length,collected:Object.keys(snapshots).length,mode:'confirmed_rules_collection_only',version:chrome.runtime.getManifest().version,
+      automatic_website_requests:'user-started collection with scoped seller UI and original buyer-search pagination',cookie_access:false,automatic_form_changes:false};}
     return {status:'disabled',reason:'无人值守采集和账号接口操作未启用。'};
   })().then(async result=>{await rememberAction(message,result);respond(result);},async e=>{const result={status:'error',message:String(e.message||e).slice(0,300)};await rememberAction(message,result);respond(result);});
   return true;

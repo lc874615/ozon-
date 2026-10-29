@@ -10,10 +10,10 @@ d=structuredClone(data);d.properties[2].name='Отзывы';assert.equal(result(
 d=structuredClone(data);d.properties[4].name='Sale price, RUB';assert.equal(result(d).decision,'review');
 d=structuredClone(data);d.properties[4].value='约10';assert.equal(result(d).decision,'review');
 d=structuredClone(data);d.properties.push({name:'售价（人民币）',value:'19'});assert.equal(result(d).decision,'review');
-d=structuredClone(data);d.properties[1].value='';assert.equal(result(d).decision,'pass');
+d=structuredClone(data);d.properties[1].value='';assert.equal(result(d).decision,'review');
 d=structuredClone(data);d.properties[1].value='Apple';assert.equal(result(d).decision,'exclude');
 d=structuredClone(data);d.properties[0].value='6';assert.equal(result(d).decision,'exclude');
-assert.throws(()=>c.parseFilterSettings({...f,amount_min:21}));assert.throws(()=>c.parseFilterSettings({...f,min_sold28:5}));assert.throws(()=>c.parseFilterSettings({...f,after_date:'2026-02-30'}));
+assert.throws(()=>c.parseFilterSettings({...f,amount_min:21}));assert.equal(c.parseFilterSettings({...f,min_sold28:1}).min_sold28,1);assert.throws(()=>c.parseFilterSettings({...f,min_sold28:0}));assert.throws(()=>c.parseFilterSettings({...f,after_date:'2026-02-30'}));
 assert.equal(c.evaluateCaptureFilters(data,{...f,amount_metric:'revenue28'}).decision,'review');
 console.log('PASS exact date/price/volume boundaries, no RUB substitution, missing/conflicting evidence review, no review-count or revenue inference');
 
@@ -23,4 +23,4 @@ d=structuredClone(data);d.properties[0].value='2';d.properties.push({name:'履�
 d=structuredClone(data);d.title='Godox C100 camera';d.properties[1].value='без бренда';assert.equal(result(d).decision,'review');
 
 d=structuredClone(data);d.properties.push({name:'履约方式',value:'FBO,FBS'});d.properties[0].value='7';assert.equal(result(d).decision,'pass');
-d.properties[0].value='6';assert.equal(result(d).decision,'exclude');d.properties=d.properties.filter(p=>p.name!=='参考最短送达天数');assert.equal(result(d).decision,'exclude');
+d.properties[0].value='6';assert.equal(result(d).decision,'exclude');d.properties=d.properties.filter(p=>p.name!=='参考最短送达天数');assert.equal(result(d).decision,'review');

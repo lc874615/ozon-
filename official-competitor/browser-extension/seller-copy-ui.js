@@ -78,6 +78,14 @@ async function sellerCopyUi(command){
   const control_label=clean(next[0].innerText);next[0].click();return {status:'parameter_step_clicked',control_label};
  }
  if(command.action==='draft-identity')return {status:'identity_read',draft_ids:draftIds,heading:clean(document.querySelector('h1')?.innerText)};
+ if(command.action==='return-to-search'){
+  if(!command.form_read_confirmed)return {status:'parameter_read_not_confirmed'};
+  let target;try{target=new URL(command.copy_url);}catch{return {status:'invalid_return_url'};}
+  if(target.origin!==source.origin||target.pathname!=='/app/products/copy/list')return {status:'invalid_return_url'};
+  const links=[...document.querySelectorAll('a[href]')].filter(a=>visible(a)&&(()=>{try{const u=new URL(a.href);return u.origin===target.origin&&u.pathname===target.pathname&&!u.search&&!u.hash;}catch{return false;}})());
+  if(links.length===1){links[0].click();return {status:'return_link_clicked'};}
+  return {status:'use_browser_navigation',copy_url:target.href};
+ }
  if(command.action==='back-from-parameters'){
   if(!command.form_read_confirmed)return {status:'parameter_read_not_confirmed'};
   if(copySearch&&!parameterFormDetected)return {status:'still_on_copy_search_do_not_navigate'};
@@ -90,15 +98,15 @@ async function sellerCopyUi(command){
  }
  if(command.action==='discard-unsaved'){
   if(!command.back_clicked)return {status:'back_action_not_confirmed'};
-  const discard=exact(['退出且不保存','退出并且不保存','退出并不保存','Выйти без сохранения','Выйти и не сохранять','Не сохранять','Exit without saving']);
+  const discard=exact(['退出不保存','退出且不保存','退出并且不保存','退出并不保存','Выйти без сохранения','Выйти и не сохранять','Не сохранять','Exit without saving']);
   if(discard.length!==1)return {status:'discard_confirmation_not_ready',matches:discard.length};
   discard[0].click();return {status:'discard_clicked'};
  }
  if(command.action==='verify-discard'){
-  const remaining=exact(['退出且不保存','退出并且不保存','退出并不保存','Выйти без сохранения','Выйти и не сохранять','Не сохранять','Exit without saving']);
+  const remaining=exact(['退出不保存','退出且不保存','退出并且不保存','退出并不保存','Выйти без сохранения','Выйти и не сохранять','Не сохранять','Exit without saving']);
   const inputs=[...document.querySelectorAll('input')].filter(e=>visible(e)&&!e.disabled&&['text','search'].includes(e.type));
   let expectedPath=false;try{const u=new URL(command.copy_url);expectedPath=u.origin===source.origin&&u.pathname===source.pathname;}catch{}
-  return {status:expectedPath&&copySearch&&inputs.length&&!remaining.length&&!restoreSeen&&!deleteButtons.length?'discard_return_confirmed':'discard_not_confirmed',verification_scope:'normal_UI_return_after_explicit_discard_not_server_draft_audit'};
+  return {status:expectedPath&&copySearch&&!parameterFormDetected&&!selectedCounts.some(n=>n>0)&&inputs.length&&!remaining.length&&!restoreSeen&&!deleteButtons.length?'discard_return_confirmed':'discard_not_confirmed',verification_scope:'normal_UI_return_after_explicit_discard_not_server_draft_audit'};
  }
  return {status:'unsupported_action'};
 }

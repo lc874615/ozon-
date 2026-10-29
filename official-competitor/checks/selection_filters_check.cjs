@@ -21,3 +21,6 @@ d=structuredClone(data);d.properties.push({name:'履约方式',value:'FBO'});ass
 d=structuredClone(data);d.properties[0].value='2';d.properties.push({name:'履约方式',value:'FBS'});assert.equal(result(d).decision,'pass');
 
 d=structuredClone(data);d.title='Godox C100 camera';d.properties[1].value='без бренда';assert.equal(result(d).decision,'review');
+
+d=structuredClone(data);d.properties.push({name:'履约方式',value:'FBO,FBS'});d.properties[0].value='7';assert.equal(result(d).decision,'pass');
+d.properties[0].value='6';assert.equal(result(d).decision,'exclude');d.properties=d.properties.filter(p=>p.name!=='参考最短送达天数');assert.equal(result(d).decision,'exclude');

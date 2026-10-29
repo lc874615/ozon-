@@ -105,6 +105,9 @@ async function sellerCopyTick(){
   const {sellerCopyJob:j}=await chrome.storage.local.get('sellerCopyJob');if(j?.status!=='running'){await advanceSellerBatch();return;}
   const save=async()=>{const {sellerCopyJob:latest}=await chrome.storage.local.get('sellerCopyJob');if(latest?.id!==j.id||latest.status!=='running')return false;await chrome.storage.local.set({sellerCopyJob:j});return true;};
   const event=(phase,status)=>{j.events.push({phase,status,at:new Date().toISOString()});j.events=j.events.slice(-30);};
+  const completeReturn=async(scope,mode)=>{
+   j.discard_verified=true;j.discard_verification_scope=scope;j.exit_confirmation_mode=mode;j.cleanup_required=false;j.status=j.packaging_capture?.complete?'completed':'completed_partial';j.reason=j.packaging_capture?.complete?'copy_read_return_ui_verified':'packaging_incomplete_but_exit_confirmed';j.finished_at=new Date().toISOString();event('verify_discard',mode);if(!await save())return;await chrome.alarms.clear(COPY_ALARM);await advanceSellerBatch();
+  };
   if(Date.now()-j.phase_at>45000)return await finishSellerCopySkip('phase_timeout_'+j.phase);
   if(j.phase==='init'){
    const tab=await chrome.tabs.get(j.tab_id);if(tab.status!=='complete'){wakeSellerCopy();return;}
@@ -185,13 +188,28 @@ async function sellerCopyTick(){
    j.captured_form_properties=extra;await chrome.storage.local.set({sellerEvidence:latestEvidence});
 
 
+   if(typeof chrome.tabs.update==='function'){
+    j.phase='return_search_in_flight';j.return_to_search_intent_at=new Date().toISOString();if(!await save())return;
+    const nav=await copyUi(j.tab_id,{action:'return-to-search',form_read_confirmed:true,copy_url:j.copy_url});j.last_return_navigation=nav;
+    if(nav?.status==='blocked_verification'){j.phase='back';await save();return await stopSellerCopy('verification_required');}
+    if(nav?.status==='use_browser_navigation')await chrome.tabs.update(j.tab_id,{url:j.copy_url});
+    else if(nav?.status!=='return_link_clicked'){await save();return await finishSellerCopySkip(nav?.status||'return_navigation_unavailable');}
+    j.return_to_search_requested=true;j.phase='discard';j.back_clicked_at=new Date().toISOString();j.phase_at=Date.now();await save();wakeSellerCopy(700);return;
+   }
    let r=await copyUi(j.tab_id,{action:'back-from-parameters',form_read_confirmed:true,copy_url:j.copy_url});event('back',r?.status);
    if(r?.status==='back_button_ambiguous_or_missing'&&r.candidates===0&&typeof chrome.tabs.goBack==='function'){j.phase='back_in_flight';if(!await save())return;await chrome.tabs.goBack(j.tab_id);j.back_method='browser_history_one_step_after_verified_parameter_form';r={status:'back_clicked'};event('back','browser_back_triggered');}
    if(r?.status==='blocked_verification')return await stopSellerCopy('verification_required');
    if(r?.status!=='back_clicked'){await save();return await finishSellerCopySkip(r?.status||'back_not_available');}
    j.phase='discard';j.back_clicked_at=new Date().toISOString();j.phase_at=Date.now();await save();wakeSellerCopy(700);return;
   }
+  if(j.phase==='return_search_in_flight')return await finishSellerCopySkip('return_navigation_result_unknown_no_retry');
   if(j.phase==='discard'){
+   if(j.return_to_search_requested){
+    const tab=await chrome.tabs.get(j.tab_id);if(tab.status!=='complete'){wakeSellerCopy(1000);return;}
+    const clean=await copyUi(j.tab_id,{action:'verify-discard',copy_url:j.copy_url});
+    if(clean?.status==='blocked_verification')return await stopSellerCopy('verification_required');
+    if(clean?.status==='discard_return_confirmed')return await completeReturn('normal_UI_clean_search_after_owned_navigation_no_dialog_not_server_draft_audit','clean_search_return_no_discard_dialog');
+   }
    j.phase='discard_in_flight';if(!await save())return;
    const r=await copyUi(j.tab_id,{action:'discard-unsaved',back_clicked:!!j.back_clicked_at});event('discard',r?.status);
    if(r?.status==='blocked_verification'){j.phase='discard';await save();return await stopSellerCopy('verification_required');}
@@ -205,7 +223,7 @@ async function sellerCopyTick(){
    const r=await copyUi(j.tab_id,{action:'verify-discard',copy_url:j.copy_url});
    if(r?.status==='blocked_verification')return await stopSellerCopy('verification_required');
    if(r?.status!=='discard_return_confirmed'){wakeSellerCopy(1000);return;}
-   j.discard_verified=true;j.discard_verification_scope=r.verification_scope;j.cleanup_required=false;j.status=j.packaging_capture?.complete?'completed':'completed_partial';j.reason=j.packaging_capture?.complete?'copy_read_back_discard_ui_verified':'packaging_incomplete_but_exit_confirmed';j.finished_at=new Date().toISOString();event('verify_discard','returned_after_exit_without_saving');await save();await chrome.alarms.clear(COPY_ALARM);await advanceSellerBatch();return;
+   return await completeReturn(r.verification_scope,'explicit_exit_without_saving');
   }
   return await stopSellerCopy('unsupported_workflow_phase');
  }catch(e){const reason='ui_workflow_error: '+String(e.message||e).slice(0,180);const {sellerCopyJob:current}=await chrome.storage.local.get('sellerCopyJob');if(/access|denied|403|429/i.test(reason))await stopSellerCopy(reason);else if(current?.copy_intent_at)await finishSellerCopySkip(reason);else await stopSellerCopy(reason);}

@@ -18,7 +18,9 @@ function evaluateCaptureFilters(data,settings){
  const push=(field,state,evidence=null)=>checks.push({field,state,evidence});
  const scheme=one(['схема продаж','sales schema','履约方式','发货方式']);
  let e=one(['参考最短送达天数']);const delivery=e&&/^\d+$/.test(e.value)?Number(e.value):null;
- push('delivery_at_least_7_days',scheme&&norm(scheme.value)==='fbs'?'pass':scheme&&['fbo','rfbs','real fbs'].includes(norm(scheme.value))?'exclude':delivery===null?'review':delivery>=7?'pass':'exclude',scheme||e);
+ const schemes=scheme?norm(scheme.value).split(/[,，;|\s]+/).filter(Boolean):[];
+ const mixed=schemes.includes('fbs')&&schemes.includes('fbo');
+ push('delivery_at_least_7_days',mixed?(delivery!==null&&delivery>=7?'pass':'exclude'):scheme&&norm(scheme.value)==='fbs'?'pass':scheme&&['fbo','rfbs','real fbs'].includes(norm(scheme.value))?'exclude':delivery===null?'review':delivery>=7?'pass':'exclude',mixed?{...scheme,delivery_days:delivery,delivery_evidence:e||null}:scheme||e);
  const brandRows=values(['бренд','brand','品牌']);
  const blocked=brandRows.find(row=>internationalBrands.includes(norm(row.value)));
  const title=norm(data.title);const titleSignal=internationalBrands.find(b=>new RegExp('(^|[^a-z0-9])'+b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-z0-9]|$)','i').test(title));
@@ -47,6 +49,7 @@ function withListingEvidence(data,evidence={}){
 
 // Final collection gate is separate from preliminary product eligibility.
 function applyCollectionCompleteness(review,data,sellerProperties=[]){
+ if(data.collection_issue==='page_load_timeout'||data.seller_collection_outcome?.reason==='seller_search_no_results')return {...review,decision:'exclude',checks:[...review.checks,{field:data.collection_issue==='page_load_timeout'?'page_load_timeout':'seller_search_no_results',state:'exclude',evidence:{reason:data.collection_issue||data.seller_collection_outcome.reason}}]};
  if(!data.seller_stage_required)return review;
  const packaging=extractPackaging({fields:sellerProperties.map(p=>({label:p.name,value:p.value}))});
  const outcome=data.seller_collection_outcome||{};

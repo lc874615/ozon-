@@ -40,16 +40,16 @@ async function autoQueueTick(){
   if(s.phase==='navigate'){
    const wait=(s.next_navigation_at||0)-Date.now();if(wait>0){scheduleAutoTick(wait);return;}
    let tab;if(s.tabId===null)tab=await chrome.tabs.create({url:s.urls[s.index],active:false});else tab=await chrome.tabs.update(s.tabId,{url:s.urls[s.index]});
-   s.tabId=tab.id;s.phase='read';s.navigated_at=Date.now();s.prepare_attempts=0;s.next_navigation_at=s.navigated_at+20000;
+   s.tabId=tab.id;s.phase='read';s.navigated_at=Date.now();s.prepare_attempts=0;s.refresh_attempts=0;s.next_navigation_at=s.navigated_at+20000;
    const current=await chrome.storage.local.get('autoQueue');
    if(current.autoQueue?.status!=='running'||current.autoQueue.started_at!==s.started_at)return;
    await chrome.storage.local.set({autoQueue:s});scheduleAutoTick(2000);return;
   }
   const tab=await chrome.tabs.get(s.tabId);
-  if(tab.status!=='complete'){if(Date.now()-s.navigated_at>90000)await skipAutoCandidate(s,expected,'page_load_timeout');else scheduleAutoTick(2000);return;}
+  if(tab.status!=='complete'){if(Date.now()-s.navigated_at>30000){if(await refreshIncompleteBuyerOnce(s,'page_load_timeout'))return;await skipAutoCandidate(s,expected,'page_load_timeout');}else scheduleAutoTick(2000);return;}
   const result=s.pending_buyer||(await chrome.scripting.executeScript({target:{tabId:s.tabId},files:['price-reader.js','delivery-reference.js','collector.js']}))[0]?.result;
   if(result?.status==='blocked_verification')return await pauseAuto('verification_required');
-  if(result?.product_id!==expected||!result?.title){if(Date.now()-s.navigated_at<8000){scheduleAutoTick(2000);return;}return await skipAutoCandidate(s,expected,'wrong_or_empty_product_page');}
+  if(result?.product_id!==expected||!result?.title){if(Date.now()-s.navigated_at<8000){scheduleAutoTick(2000);return;}if(await refreshIncompleteBuyerOnce(s,'wrong_or_empty_product_page'))return;return await skipAutoCandidate(s,expected,'wrong_or_empty_product_page');}
   if(!Array.isArray(result.properties))return await pauseAuto('invalid_collector_result');
   const attributeCount=result.attribute_property_count??result.properties.length;
   const initial=evaluateCaptureFilters(result,s.filters);
@@ -57,12 +57,13 @@ async function autoQueueTick(){
   if(!independentlyExcluded&&(!attributeCount||result.diagnostics?.full_characteristics_loaded===false)&&(s.prepare_attempts||0)<2){
    const prepared=(await chrome.scripting.executeScript({target:{tabId:s.tabId},files:['prepare-characteristics.js']}))[0]?.result;
    if(prepared?.status==='blocked_verification')return await pauseAuto('verification_required');
-   if(prepared?.status!=='prepared')return await skipAutoCandidate(s,expected,'cannot_prepare_characteristics');
+   if(prepared?.status!=='prepared'){if(await refreshIncompleteBuyerOnce(s,'cannot_prepare_characteristics'))return;return await skipAutoCandidate(s,expected,'cannot_prepare_characteristics');}
    const current=await chrome.storage.local.get('autoQueue');
    if(current.autoQueue?.status!=='running'||current.autoQueue.started_at!==s.started_at)return;
    s.prepare_attempts=(s.prepare_attempts||0)+1;s.last_preparation=prepared.action;
    await chrome.storage.local.set({autoQueue:s});scheduleAutoTick(2500);return;
   }
+  if(!independentlyExcluded&&!attributeCount&&!s.pending_buyer&&await refreshIncompleteBuyerOnce(s,'attributes_not_loaded'))return;
   if(!independentlyExcluded&&!s.pending_buyer){
    const market=await syncNativeMarketForSku(expected);
    if(market.pause_required||market.status==='blocked_until_user_handles')return await pauseAuto('seller_market_access_limited');
@@ -107,11 +108,20 @@ chrome.tabs.onUpdated.addListener((id,change)=>{if(change.status!=='complete')re
 async function skipAutoCandidate(s,sku,reason){
  const latest=await chrome.storage.local.get(['autoQueue','snapshots']);
  if(latest.autoQueue?.status!=='running'||latest.autoQueue.started_at!==s.started_at)return;
- const saved=latest.snapshots||{};
- saved[sku]={product_id:sku,source_url:s.urls[s.index],captured_at:new Date().toISOString(),title:'',properties:[],images:[],collection_status:'partial',collection_issue:reason,selection_review:{decision:'review',checks:[{field:'page_state',state:'review',evidence:reason}]}};
- s.skipped_errors=(s.skipped_errors||0)+1;s.counts.review=(s.counts.review||0)+1;
+ const saved=latest.snapshots||{};const decision=reason==='page_load_timeout'?'exclude':'review';
+ saved[sku]={product_id:sku,source_url:s.urls[s.index],captured_at:new Date().toISOString(),title:'',properties:[],images:[],collection_status:'partial',collection_issue:reason,selection_review:{decision,checks:[{field:'page_state',state:decision,evidence:reason}]}};
+ s.skipped_errors=(s.skipped_errors||0)+1;s.counts[decision]=(s.counts[decision]||0)+1;
  s.errors=[...(s.errors||[]),{sku,reason,at:new Date().toISOString()}].slice(-100);
  s.index++;s.phase='navigate';delete s.pending_buyer;
  await chrome.storage.local.set({snapshots:saved,autoQueue:s});scheduleAutoTick(0);
  return {status:'candidate_skipped',reason};
+}
+
+async function refreshIncompleteBuyerOnce(s,reason){
+ if(s.pending_buyer||(s.refresh_attempts||0)>=1||typeof chrome.tabs.reload!=='function')return false;
+ const guard=(await chrome.scripting.executeScript({target:{tabId:s.tabId},func:()=>({blocked:/验证码|captcha|проверка безопасности|доступ ограничен|access denied|访问受限|访问被拒绝/i.test((document.body?.innerText||'').slice(0,12000)),login:!!document.querySelector('input[type=password]')})}))[0]?.result;
+ if(guard?.blocked===true||guard?.login===true){await pauseAuto(guard.login?'login_access_required':'verification_required');return true;}
+ const {autoQueue:latest}=await chrome.storage.local.get('autoQueue');if(latest?.status!=='running'||latest.started_at!==s.started_at)return true;
+ s.refresh_attempts=1;s.last_refresh={reason,at:new Date().toISOString()};s.navigated_at=Date.now();s.prepare_attempts=0;
+ await chrome.storage.local.set({autoQueue:s});await chrome.tabs.reload(s.tabId);scheduleAutoTick(2000);return true;
 }

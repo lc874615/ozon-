@@ -88,7 +88,11 @@ chrome.runtime.onMessage.addListener((m,s,respond)=>{(async()=>{
   const seeds=String(m.skus||'').split(/[\s,，;；]+/).filter(x=>/^\d+$/.test(x));const {report}=await requestEnvironment(seeds);
   await chrome.storage.local.set({apiEnvironment:report});await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({version:chrome.runtime.getManifest().version,request_environment:report},null,2)),filename:'ozon-request-environment.json',saveAs:true});return {status:'environment_exported'};
  }
- if(m.action==='status')return (await chrome.storage.local.get('apiJob')).apiJob||{status:'idle'};
+ if(m.action==='status'){
+  let j=(await chrome.storage.local.get('apiJob')).apiJob;
+  if(j&&!busy&&['running','paused','pausing','terminating'].includes(j.status)){j={...j,status:'interrupted',message:'任务执行进程已结束；进度和账本保留，不能恢复旧任务，可启动新任务'};await chrome.storage.local.set({apiJob:j});}
+  return {...(j||{status:'idle'}),runtime_can_control:busy};
+ }
  if(m.action==='export'){
   const {apiJob}=await chrome.storage.local.get('apiJob');if(!apiJob)throw new Error('尚无诊断');
   const report={version:chrome.runtime.getManifest().version,exported_at:new Date().toISOString(),mode:'API_ONLY_LOCAL_VALIDATION',credentials_exported:false,product_creation:true,creation_scope:"temporary_copy_only",cleanup_performed:false,job:apiJob};

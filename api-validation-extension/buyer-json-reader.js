@@ -42,6 +42,38 @@ async function readBuyerProductJson(sku){
   };
   deliveryDiagnostics.async_descriptors=widgets.filter(([k])=>/delivery|addtocart/i.test(k)).map(([name,v])=>({name,async_action:schema(v.asyncAction),web_data:schema(v.webData),first_button:schema(v.firstButton)}));
   if(delivery.minimum_days===null){
+   const endpoint='/api/composer-api.bx/_action/v2/pdpGetButtonTexts';
+   const actions=widgets.filter(([k])=>/^webAddToCart/.test(k)).map(([,v])=>v.asyncAction).filter(Boolean);
+   let candidate=null;
+   for(const action of actions){
+    try{
+     if(typeof action.link!=='string')continue;const u=new URL(action.link,location.origin);
+     if(u.origin!==location.origin||u.pathname!==endpoint||u.searchParams.get('product_id')!==String(sku))continue;
+     if(!u.searchParams.get('at')||!u.searchParams.get('sh'))continue;
+     const params=action.params,keys=['enableProductViewedExtended','inCartPosition','pageType','toCartPosition'];
+     if(!params||keys.some(k=>typeof params[k]!=='string')||params.pageType!=='pdp')continue;
+     candidate={url:u.href,params:Object.fromEntries(keys.map(k=>[k,params[k]]))};break;
+    }catch{}
+   }
+   deliveryDiagnostics.button_text_action=candidate?'validated_current_sku':'missing_or_unverified';
+   if(candidate){
+    const response=await fetch(candidate.url,{method:'POST',credentials:'include',redirect:'error',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify({params:candidate.params})});
+    deliveryDiagnostics.button_text_http_status=response.status;
+    if([401,403,429].includes(response.status))return {status:'access_or_rate_limit',http_status:response.status};
+    if(response.ok){
+     const raw=await response.text();if(raw.length>1000000)return {status:'response_too_large'};const payload=JSON.parse(raw);
+     if(payload.incidentId||payload.challengeURL||payload.blockURL)return {status:'blocked_verification'};
+     // Read only the confirmed button text fields; never export tokens or the response body.
+     const scan=(node,depth=0)=>{if(!node||typeof node!=='object'||depth>6)return;
+      const button=node.firstButton;
+      if(button){const value=button.toCartText?.text;if(typeof value==='string'&&/достав/i.test(value))visit(value,0,'pdpGetButtonTexts.delivery');}
+      for(const child of Object.values(node).slice(0,50))if(child&&typeof child==='object')scan(child,depth+1);
+     };scan(payload);
+     delivery=typeof deliveryReference==='function'?deliveryReference([...new Set(timeFragments)]):{minimum_days:null};delivery.diagnostics=deliveryDiagnostics;
+    }
+   }
+  }
+  if(delivery.minimum_days===null){
    // This is the additional read-only product-layout request observed in the supplied plugin.
    // Do not execute unknown asyncAction descriptors: they can represent state-changing actions.
    const supplementalPath='/api/entrypoint-api.bx/page/json/v2?'+new URLSearchParams({url:'/product/'+sku+'/?layout_container=pdpPage2column&layout_page_index=2'});

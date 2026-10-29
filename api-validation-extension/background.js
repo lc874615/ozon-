@@ -49,26 +49,27 @@ async function runValidation(id,seeds,filters,company,concurrency){
    }
   };
   const {apiJob:current}=await chrome.storage.local.get('apiJob');
-  const target=current.target_count||1,allResults=[],history=new Set((await chrome.storage.local.get('collectionSkuHistory')).collectionSkuHistory||[]),seenCursors=new Set();let cursor=null,passed=0,stopped=null,discovered=0;
+  const target=current.target_count||1,allResults=[],history=new Set((await chrome.storage.local.get('collectionSkuHistory')).collectionSkuHistory||[]),seenCursors=new Set();let cursor=null,passed=0,stopped=null,discovered=0;const candidateBuffer=[];
   while(passed<target){
    await controlGate(id);
-   if(current.source_mode!=='manual'){
+   if(current.source_mode!=='manual'&&candidateBuffer.length===0){
     if(cursor&&seenCursors.has(cursor)){stopped='search_pagination_repeated';break;}if(cursor)seenCursors.add(cursor);
     const found=await call('自动搜索候选SKU',buyer.id,['search-candidates.js'],(mode,value,limit,cursor)=>discoverSearchCandidates(mode,value,limit,cursor),[current.source_mode,current.source_value,200,cursor]);
     await saveJob(id,{candidate_discovery:found});
     if(!['search_candidates_read','search_candidates_empty'].includes(found.status)){stopped=found.status;break;}
-    seeds=found.skus||[];cursor=found.next_cursor;
+    candidateBuffer.push(...(found.skus||[]));cursor=found.next_cursor;
    }
+   if(current.source_mode!=='manual')seeds=candidateBuffer.splice(0,current.candidate_limit||50);
    const result=await collectApiBatch(seeds,ports,{filters,concurrency:1,history,target:target-passed,onResult:async item=>{
     history.add(item.sku);allResults.push(item);if(item.status==='api_data_complete')passed++;
     await chrome.storage.local.set({collectionSkuHistory:[...history]});
     await saveJob(id,{qualified_count:passed,result:{results:allResults,processed:allResults.length,discovered,paused:false},target_count:target});
    }});
    discovered+=result.discovered;
-   await saveJob(id,{pending_skus:result.unprocessed,search_cursor:cursor});
+   await saveJob(id,{pending_skus:result.unprocessed,pending_source_skus:candidateBuffer,search_cursor:cursor});
    if(result.paused){stopped=result.pause_reason;break;}
    if(passed>=target)break;
-   if(current.source_mode==='manual'||!cursor){stopped='candidate_pool_exhausted';break;}
+   if(current.source_mode==='manual'||(!cursor&&candidateBuffer.length===0)){stopped='candidate_pool_exhausted';break;}
   }
   if(control==='stop')throw new Error('USER_TERMINATED');
   const result={results:allResults,discovered,processed:allResults.length,paused:!!stopped,pause_reason:stopped,target,qualified_count:passed,shortfall:Math.max(0,target-passed)};
@@ -107,7 +108,7 @@ chrome.runtime.onMessage.addListener((m,s,respond)=>{(async()=>{
   const company=String(m.company||'').trim();if(company&&!/^\d+$/.test(company))throw new Error('Shop编号应为纯数字，不是API Key');
   if(m.source_mode&&!['manual','keyword','category'].includes(m.source_mode))throw new Error('候选来源无效');if(m.source_mode&&m.source_mode!=='manual'&&!String(m.source_value||'').trim())throw new Error('请输入关键词或类目地址');
   const targetCount=Number(m.target_count||1);if(!Number.isInteger(targetCount)||targetCount<1||targetCount>100)throw new Error('测试版合格目标须为1–100');
-  const id=crypto.randomUUID();busy=true;control='run';await chrome.storage.local.set({apiJob:{id,target_count:targetCount,qualified_count:0,source_mode:m.source_mode||'manual',source_value:String(m.source_value||'').trim(),candidate_limit:Math.max(1,Math.min(5,Number(m.candidate_limit)||5)),status:'running',started_at:new Date().toISOString(),seeds,filters,concurrency,stage:'准备账号读取',operations:0,reads:[]}});
+  const id=crypto.randomUUID();busy=true;control='run';await chrome.storage.local.set({apiJob:{id,target_count:targetCount,qualified_count:0,source_mode:m.source_mode||'manual',source_value:String(m.source_value||'').trim(),candidate_limit:Math.max(1,Math.min(50,Number(m.candidate_limit)||50)),status:'running',started_at:new Date().toISOString(),seeds,filters,concurrency,stage:'准备账号读取',operations:0,reads:[]}});
   runValidation(id,seeds,filters,company,concurrency);return {status:'started'};
  }
  throw new Error('Unsupported action');

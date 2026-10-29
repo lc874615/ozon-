@@ -45,15 +45,26 @@ async function readBuyerProductJson(sku){
    const endpoint='/api/composer-api.bx/_action/v2/pdpGetButtonTexts';
    const actions=widgets.filter(([k])=>/^webAddToCart/.test(k)).map(([,v])=>v.asyncAction).filter(Boolean);
    let candidate=null;
+   deliveryDiagnostics.button_text_checks=[];
    for(const action of actions){
+    const check={link_type:typeof action.link,param_keys:action.params&&typeof action.params==='object'?Object.keys(action.params).filter(k=>['enableProductViewedExtended','inCartPosition','pageType','toCartPosition'].includes(k)):[],reason:null};
+    deliveryDiagnostics.button_text_checks.push(check);
     try{
-     if(typeof action.link!=='string')continue;const u=new URL(action.link,location.origin);
-     if(u.origin!==location.origin||u.pathname!==endpoint||u.searchParams.get('product_id')!==String(sku))continue;
-     if(!u.searchParams.get('at')||!u.searchParams.get('sh'))continue;
+     if(typeof action.link!=='string'){check.reason='link_missing';continue;}
+     const u=new URL(action.link,location.origin);
+     check.same_origin=u.origin===location.origin;
+     check.path_form=u.pathname===endpoint?'full_confirmed_endpoint':u.pathname==='/pdpGetButtonTexts'?'bare_button_action':u.pathname==='/v2/pdpGetButtonTexts'?'versioned_button_action':u.pathname==='/_action/v2/pdpGetButtonTexts'?'action_relative_endpoint':'other';
+     check.query_fields=['product_id','at','sh'].filter(k=>u.searchParams.has(k));
+     check.product_id_matches=u.searchParams.get('product_id')===String(sku);
+     if(!check.same_origin){check.reason='origin_mismatch';continue;}
+     if(u.pathname!==endpoint){check.reason='endpoint_format_unrecognized';continue;}
+     if(!check.product_id_matches){check.reason='product_id_missing_or_mismatch';continue;}
+     if(!u.searchParams.get('at')||!u.searchParams.get('sh')){check.reason='dynamic_query_missing';continue;}
      const params=action.params,keys=['enableProductViewedExtended','inCartPosition','pageType','toCartPosition'];
-     if(!params||keys.some(k=>typeof params[k]!=='string')||params.pageType!=='pdp')continue;
-     candidate={url:u.href,params:Object.fromEntries(keys.map(k=>[k,params[k]]))};break;
-    }catch{}
+     check.param_types=Object.fromEntries(keys.map(k=>[k,typeof params?.[k]]));
+     if(!params||keys.some(k=>typeof params[k]!=='string')||params.pageType!=='pdp'){check.reason='payload_missing_or_invalid';continue;}
+     check.reason='validated';candidate={url:u.href,params:Object.fromEntries(keys.map(k=>[k,params[k]]))};break;
+    }catch{check.reason='invalid_action_url';}
    }
    deliveryDiagnostics.button_text_action=candidate?'validated_current_sku':'missing_or_unverified';
    if(candidate){

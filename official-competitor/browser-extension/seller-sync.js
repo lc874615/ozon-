@@ -11,13 +11,13 @@ async function readBoundForm(tabId,binding){
   // Explicit packaging labels and units only; no conversion from product dimensions.
   if(/^(?:包装(?:长度|宽度|高度)，毫米|含包装重量，克|Длина упаковки, мм|Ширина упаковки, мм|Высота упаковки, мм|Вес с упаковкой, г)$/i.test(name))properties.push({name,value:String(f.value),source:'user_bound_current_seller_form',source_page:form.page.origin+form.page.path,captured_at:form.captured_at});
  }
- return {status:'bound_form_read',sku:binding.sku,properties};
+ return {status:properties.length?'bound_form_read':'bound_form_not_parameter_page',sku:binding.sku,properties};
 }
 async function bindSellerForm(sku){
  if(!/^\d+$/.test(String(sku||'')))throw new Error('请输入此参数页实际复制来源SKU，并确认对应关系');
  const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab?.id)throw new Error('请打开对应卖家参数页');
  const form=(await chrome.scripting.executeScript({target:{tabId:tab.id},files:['form-reader.js']}))[0]?.result;
- if(!form?.fields?.length)throw new Error('未读到参数表单，不能绑定');
+ if(!form?.fields?.some(f=>/包装(?:长度|宽度|高度)|含包装重量|Длина упаковки|Ширина упаковки|Высота упаковки|Вес с упаковкой/i.test(f.label||'')))throw new Error('当前不是已加载包装字段的商品详细参数页；搜索页不要绑定，请使用运行来源SKU单件流程');
  const {sellerFormBindings={}}=await chrome.storage.local.get('sellerFormBindings');sellerFormBindings[tab.id]={sku:String(sku),fingerprint:await formFingerprint(form),bound_at:new Date().toISOString()};
  await chrome.storage.local.set({sellerFormBindings});return syncSellerVisible();
 }

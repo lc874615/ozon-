@@ -19,3 +19,6 @@ async function refreshProgress(){
 }
 refreshProgress();setInterval(refreshProgress,1000);
 chrome.storage.onChanged.addListener((changes,area)=>{if(area==='local'&&['autoQueue','snapshots','collectionQueue','dailyGoal'].some(k=>changes[k]))refreshProgress();});
+
+(async()=>{try{const {lastSourceSku=''}=await chrome.storage.local.get('lastSourceSku');if(!document.getElementById('sku-hint').value)document.getElementById('sku-hint').value=lastSourceSku;}catch{}})();
+document.getElementById('sku-hint').addEventListener('change',()=>{const value=document.getElementById('sku-hint').value.trim();if(/^\d+$/.test(value))chrome.storage.local.set({lastSourceSku:value});});

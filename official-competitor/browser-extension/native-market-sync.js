@@ -1,12 +1,21 @@
 async function syncNativeMarketForSku(sku){
  const store=chrome.storage.local;
+ await store.set({nativeMarketLast:{status:'reader_started',requested_sku:String(sku),checked_at:new Date().toISOString(),reader_phase:'select_seller_tab'}});
+ try{return await nativeMarketAttempt(sku);}
+ catch(e){const {nativeMarketLast:prior}=await store.get('nativeMarketLast');const result={status:'reader_execution_failed',requested_sku:String(sku),at_phase:prior?.reader_phase||'unknown',message:String(e.message||e).slice(0,300),checked_at:new Date().toISOString()};if(/cannot access|permission|denied|权限/i.test(result.message)){result.pause_required=true;await showVerificationAttention(prior?.tab_id,'seller_market',result.message);}
+ await store.set({nativeMarketLast:result});return result;}
+}
+async function nativeMarketAttempt(sku){
+ const store=chrome.storage.local;
  const {nativeMarketCache={},nativeMarketBlocked=null,marketCompanyId=''}=await store.get(['nativeMarketCache','nativeMarketBlocked','marketCompanyId']);
- if(nativeMarketBlocked)return {status:'blocked_until_user_handles',...nativeMarketBlocked};
+ if(nativeMarketBlocked){const result={status:'blocked_until_user_handles',...nativeMarketBlocked,requested_sku:sku,checked_at:new Date().toISOString()};await store.set({nativeMarketLast:result});return result;}
  const cached=nativeMarketCache[sku];if(cached&&Date.now()-cached.at<(cached.ttl||3600000))return {...cached.result,cache_used:true};
  const tabs=await chrome.tabs.query({url:['https://seller.ozon.ru/*','https://seller.ozonru.cn/*']});
  const tab=tabs.find(t=>/\/app\/analytics\//.test(new URL(t.url).pathname))||tabs[0];
  if(!tab?.id){const r={status:'seller_tabs_not_open',sku};await store.set({nativeMarketLast:r});return r;}
+ await store.set({nativeMarketLast:{status:'reader_started',requested_sku:sku,reader_phase:'inject_seller_reader',tab_id:tab.id,checked_at:new Date().toISOString()}});
  await chrome.scripting.executeScript({target:{tabId:tab.id},files:['native-market-reader.js']});
+ await store.set({nativeMarketLast:{status:'reader_started',requested_sku:sku,reader_phase:'execute_authenticated_read',tab_id:tab.id,checked_at:new Date().toISOString()}});
  const result=(await chrome.scripting.executeScript({target:{tabId:tab.id},func:(id,company)=>readNativeSellerMarket(id,company),args:[sku,marketCompanyId]}))[0]?.result||{status:'empty_reader_result'};
  const latest={...result,requested_sku:sku,checked_at:new Date().toISOString()};
  if(result.status==='access_or_rate_limit'){

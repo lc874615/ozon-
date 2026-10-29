@@ -1,8 +1,8 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Ozon 运营采集</title>
 <style>body{font:14px sans-serif;width:370px;padding:12px;line-height:1.5}button{padding:8px;margin:4px}input,textarea{width:95%}pre{white-space:pre-wrap}#live-progress{background:#eef5ff;padding:12px;border-radius:8px;margin-bottom:14px}progress{display:block;width:100%;height:20px;margin:8px 0}#progress-counts{font-weight:bold}#progress-stage,#progress-data{margin:8px 0}#progress-updated{color:#555}#notice{color:#124d85}</style>
-<h3>Ozon 采集与参数工作台 0.5.5</h3>
+<h3>Ozon 采集与参数工作台 0.5.6</h3>
 <section id="live-progress" aria-label="采集实时进度"><strong id="progress-title">正在读取进度…</strong><progress id="batch-progress" value="0" max="1" aria-label="本批已处理进度"></progress><div id="progress-numbers"></div><div id="progress-counts"></div><div id="progress-stage"></div><div id="progress-data"></div><div id="progress-seller"></div><small id="progress-history"></small><div id="progress-goal"></div><small id="progress-updated"></small></section>
-<p id="notice" role="status" aria-live="polite"></p>
+<p id="notice" role="status" aria-live="polite"></p><div id="last-operation"></div><label>本次要验证的来源SKU<input id="sku-hint" inputmode="numeric" placeholder="例如3556224138"></label><p>先读取此SKU的销量和日期，再运行此SKU的单件卖家流程。手动绑定不是启动自动流程。</p>
 <label>今日上架目标（仅记录）<input id="target" type="number" min="1" max="1000"></label><button id="save-target">保存今日目标</button>
 <h4>启动前筛选（官方近28天）</h4>
 <label>只选此日期之后上架（不含当天，可留空）<input id="after-date" type="date"></label>
@@ -16,7 +16,7 @@
 <p>自动队列根据页面就绪情况串行读取，相邻商品打开间隔至少20秒；缺参数时有限展开后继续并标待核验；验证或访问错误时暂停。销量、日期、送达时效未确认时保持待核验，不推断包装数据。</p>
 <h4>卖家端搜索/复制/读取/退出且不保存（试运行）</h4>
 <p>先在无旧草稿提示的“复制现成商品”搜索页启用流程，再回买家页启动采集，按同一SKU自动联动。首轮建议只试1件；退出未确认会记日志并跳过，可能保留未完成状态。验证或访问限制会通知你并暂停。</p>
-<button id="arm-seller-copy">在当前干净复制搜索页启用</button><button id="start-seller-copy">运行下方来源SKU单件流程</button><button id="start-seller-copy-batch">按队列运行本批卖家流程</button><button id="pause-seller-copy">暂停卖家流程</button><button id="resume-seller-copy">验证完成，继续卖家流程</button><div id="seller-copy-progress"></div>
-<h4>卖家销量与日期（同插件数据方式）</h4><p>按SKU读取当前账号正常可访问的选品分析服务，读取soldCount与nullableCreateDate；403/429会通知并暂停。</p><label>当前卖家Shop编号（自动识别失败时填写，不是API Key）<input id="market-company" inputmode="numeric"></label><button id="read-market-sku">读取下方来源SKU的销量和日期</button><button id="save-market-company">保存店铺编号</button><button id="resume-market-read">已处理访问限制，继续读取分析</button><h4>卖家端联动（只读已打开页面）</h4><button id="sync-seller">同步已打开的官方分析页面</button><p>自动采集也会同步已打开分析表格。不会自行搜索、翻页或创建草稿；只读账号正常可见行。</p><h4>卖家端参数导出</h4><label>来源SKU提示<input id="sku-hint" inputmode="numeric"></label><button id="bind-seller-form">确认当前参数页对应上述来源SKU并同步</button><p>仅在确认当前页就是该SKU的复制参数页时绑定；页面内容改变会停止关联，需重新确认。不会替你创建或删除草稿。</p><button id="capture-form">读取并导出当前页参数</button>
+<button id="arm-seller-copy">在当前干净复制搜索页启用</button><button id="start-seller-copy">运行来源SKU单件流程</button><button id="start-seller-copy-batch">按队列运行本批卖家流程</button><button id="pause-seller-copy">暂停卖家流程</button><button id="resume-seller-copy">验证完成，继续卖家流程</button><div id="seller-copy-progress"></div>
+<h4>卖家销量与日期（同插件数据方式）</h4><p>按SKU读取当前账号正常可访问的选品分析服务，读取soldCount与nullableCreateDate；403/429会通知并暂停。</p><label>当前卖家Shop编号（自动识别失败时填写，不是API Key）<input id="market-company" inputmode="numeric"></label><button id="read-market-sku">读取来源SKU的销量和日期</button><button id="save-market-company">保存店铺编号</button><button id="resume-market-read">已处理访问限制，继续读取分析</button><h4>卖家端联动（只读已打开页面）</h4><button id="sync-seller">同步已打开的官方分析页面</button><p>自动采集也会同步已打开分析表格。不会自行搜索、翻页或创建草稿；只读账号正常可见行。</p><h4>卖家端参数导出</h4><button id="bind-seller-form">仅手工补采：绑定当前详细参数页</button><p>搜索页不要点此绑定按钮，自动单件流程也不需要点。仅在已进入该SKU详细参数页时手工绑定；页面内容改变会停止关联，需重新确认。不会替你创建或删除草稿。</p><button id="capture-form">读取并导出当前页参数</button>
 <p>仅读取已加载字段，不填表、保存或发布；无法阻止页面自身自动保存。缺失选填参数留空，缺失必填参数进入待办。</p>
 <button id="export">导出筛选通过商品</button><button id="export-diagnostics">导出采集诊断</button><button id="status">查看目标和进度</button><details><summary>技术详情（排查时查看）</summary><pre id="result"></pre></details><script src="progress-view.js"></script><script src="popup.js"></script></html>

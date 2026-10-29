@@ -1,3 +1,6 @@
+# 当前版本0.5.6（试运行）
+补按钮操作/错误诊断，拒绝搜索页误绑定，来源SKU移至顶部。分析与退出真实闭环仍待验证。先读HANDOFF.md。
+
 # 当前入口：0.5.5
 先读 [HANDOFF.md](HANDOFF.md) 和 [INTEGRATED_CAPTURE.md](INTEGRATED_CAPTURE.md)。历史完整源码和已取得原始记录另存加密备份；恢复方式见仓库根目录backups。下面为历史发布说明，冲突时以HANDOFF最新决策为准。
 

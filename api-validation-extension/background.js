@@ -44,16 +44,28 @@ async function runValidation(id,seeds,filters,company,concurrency){
    }
   };
   const {apiJob:current}=await chrome.storage.local.get('apiJob');
-  if(current?.source_mode&&current.source_mode!=='manual'){
-   const found=await call('自动搜索候选SKU',buyer.id,['search-candidates.js'],(mode,value,limit)=>discoverSearchCandidates(mode,value,limit),[current.source_mode,current.source_value,current.candidate_limit]);
-   await saveJob(id,{candidate_discovery:found});
-   if(found.status!=='search_candidates_read'){await saveJob(id,{status:'paused',message:found.status,finished_at:new Date().toISOString()});return;}
-   seeds=found.skus;await saveJob(id,{seeds});
+  const target=current.target_count||1,allResults=[],history=new Set((await chrome.storage.local.get('collectionSkuHistory')).collectionSkuHistory||[]),seenCursors=new Set();let cursor=null,passed=0,stopped=null,discovered=0;
+  while(passed<target){
+   if(current.source_mode!=='manual'){
+    if(cursor&&seenCursors.has(cursor)){stopped='search_pagination_repeated';break;}if(cursor)seenCursors.add(cursor);
+    const found=await call('自动搜索候选SKU',buyer.id,['search-candidates.js'],(mode,value,limit,cursor)=>discoverSearchCandidates(mode,value,limit,cursor),[current.source_mode,current.source_value,200,cursor]);
+    await saveJob(id,{candidate_discovery:found});
+    if(!['search_candidates_read','search_candidates_empty'].includes(found.status)){stopped=found.status;break;}
+    seeds=found.skus||[];cursor=found.next_cursor;
+   }
+   const result=await collectApiBatch(seeds,ports,{filters,concurrency:1,history,target:target-passed,onResult:async item=>{
+    history.add(item.sku);allResults.push(item);if(item.status==='api_data_complete')passed++;
+    await chrome.storage.local.set({collectionSkuHistory:[...history]});
+    await saveJob(id,{qualified_count:passed,result:{results:allResults,processed:allResults.length,discovered,paused:false},target_count:target});
+   }});
+   discovered+=result.discovered;
+   await saveJob(id,{pending_skus:result.unprocessed,search_cursor:cursor});
+   if(result.paused){stopped=result.pause_reason;break;}
+   if(passed>=target)break;
+   if(current.source_mode==='manual'||!cursor){stopped='candidate_pool_exhausted';break;}
   }
-  const historyData=(await chrome.storage.local.get('collectionSkuHistory')).collectionSkuHistory||[];
-  const result=await collectApiBatch(seeds,ports,{filters,concurrency,history:new Set(historyData)});
-  await chrome.storage.local.set({collectionSkuHistory:[...new Set([...historyData,...result.results.map(r=>r.sku)])]});
-  await saveJob(id,{status:result.paused?'paused':'completed',stage:'验证结束',result,reads,operations,finished_at:new Date().toISOString()});
+  const result={results:allResults,discovered,processed:allResults.length,paused:!!stopped,pause_reason:stopped,target,qualified_count:passed,shortfall:Math.max(0,target-passed)};
+  await saveJob(id,{status:stopped?'paused':'completed',stage:stopped?'未达到目标，进度已保存':'达到合格目标',result,reads,operations,qualified_count:passed,finished_at:new Date().toISOString()});
  }catch(e){await saveJob(id,{status:'error',message:String(e.message||e).slice(0,300),finished_at:new Date().toISOString()});}finally{busy=false;}
 }
 chrome.runtime.onMessage.addListener((m,s,respond)=>{(async()=>{
@@ -74,7 +86,8 @@ chrome.runtime.onMessage.addListener((m,s,respond)=>{(async()=>{
   const filters=parseFilterSettings(m.filters||{}),concurrency=Number(m.concurrency||1);if(concurrency!==1)throw new Error('临时复制测试仅允许并发1');
   const company=String(m.company||'').trim();if(company&&!/^\d+$/.test(company))throw new Error('Shop编号应为纯数字，不是API Key');
   if(m.source_mode&&!['manual','keyword','category'].includes(m.source_mode))throw new Error('候选来源无效');if(m.source_mode&&m.source_mode!=='manual'&&!String(m.source_value||'').trim())throw new Error('请输入关键词或类目地址');
-  const id=crypto.randomUUID();busy=true;await chrome.storage.local.set({apiJob:{id,source_mode:m.source_mode||'manual',source_value:String(m.source_value||'').trim(),candidate_limit:Math.max(1,Math.min(5,Number(m.candidate_limit)||5)),status:'running',started_at:new Date().toISOString(),seeds,filters,concurrency,stage:'准备账号读取',operations:0,reads:[]}});
+  const targetCount=Number(m.target_count||1);if(!Number.isInteger(targetCount)||targetCount<1||targetCount>100)throw new Error('测试版合格目标须为1–100');
+  const id=crypto.randomUUID();busy=true;await chrome.storage.local.set({apiJob:{id,target_count:targetCount,qualified_count:0,source_mode:m.source_mode||'manual',source_value:String(m.source_value||'').trim(),candidate_limit:Math.max(1,Math.min(5,Number(m.candidate_limit)||5)),status:'running',started_at:new Date().toISOString(),seeds,filters,concurrency,stage:'准备账号读取',operations:0,reads:[]}});
   runValidation(id,seeds,filters,company,concurrency);return {status:'started'};
  }
  throw new Error('Unsupported action');

@@ -1,16 +1,31 @@
 importScripts('selection-filters.js','packaging-reader.js','api-batch-collector.js');
 let busy=false;
+function describeTab(t){
+ let host=null,route='other',sku=null;try{const u=new URL(t.url);host=u.hostname;sku=u.pathname.match(/-(\d+)\/?$/)?.[1]||u.pathname.match(/^\/product\/(\d+)\/?$/)?.[1]||null;route=u.pathname.startsWith('/product/')?'product':u.pathname.startsWith('/search')?'search':u.pathname.startsWith('/app/')?'seller_app':'other';}catch{}
+ return {id:t.id,active:!!t.active,status:t.status,host,route,product_sku:sku};
+}
+function chooseTab(tabs,seeds=[]){const ready=tabs.filter(t=>t.status==='complete');return ready.find(t=>t.active&&seeds.includes(describeTab(t).product_sku))||ready.find(t=>seeds.includes(describeTab(t).product_sku))||ready.find(t=>t.active)||ready.sort((a,b)=>(b.lastAccessed||0)-(a.lastAccessed||0))[0];}
+function inspectPageEnvironment(){
+ const text=(document.body?.innerText||'').slice(0,12000),ua=navigator.userAgent;
+ return {origin:location.origin,ready_state:document.readyState,visibility:document.visibilityState,secure_context:isSecureContext,online:navigator.onLine,cookies_enabled:navigator.cookieEnabled,fetch_available:typeof fetch==='function',chromium_major:ua.match(/(?:Chrome|Chromium)\/(\d+)/)?.[1]||null,language:navigator.language,challenge_text_detected:/подтвердите.{0,30}(?:человек|робот)|доступ ограничен|验证码|access denied|verify you are human/i.test(text),execution_world:'ISOLATED',credentials_mode:'include',custom_request_headers:false,cookie_values_read:false,network_requests:0};
+}
+async function requestEnvironment(seeds=[]){
+ const buyerTabs=await chrome.tabs.query({url:['https://www.ozon.ru/*','https://ozon.ru/*']}),sellerTabs=await chrome.tabs.query({url:['https://seller.ozon.ru/*','https://seller.ozonru.cn/*']});
+ const buyer=chooseTab(buyerTabs,seeds),seller=chooseTab(sellerTabs);
+ const report={captured_at:new Date().toISOString(),network_requests:0,selection_policy:'active_matching_seed_then_matching_seed_then_active_then_recent_complete',buyer_candidates:buyerTabs.map(describeTab),seller_candidates:sellerTabs.map(describeTab),selected_buyer:buyer?describeTab(buyer):null,selected_seller:seller?describeTab(seller):null};
+ for(const [name,tab]of [['buyer',buyer],['seller',seller]])if(tab){try{report[name]=(await chrome.scripting.executeScript({target:{tabId:tab.id},world:'ISOLATED',func:inspectPageEnvironment}))[0]?.result||{status:'empty_environment'};}catch{report[name]={status:'environment_injection_failed'};}}
+ return {buyer,seller,report};
+}
 async function saveJob(id,update){const {apiJob:j}=await chrome.storage.local.get('apiJob');if(j?.id===id)await chrome.storage.local.set({apiJob:{...j,...update}});}
 async function runValidation(id,seeds,filters,company,concurrency){
  try{
-  const buyerTabs=await chrome.tabs.query({url:['https://www.ozon.ru/*','https://ozon.ru/*']});const sellerTabs=await chrome.tabs.query({url:['https://seller.ozon.ru/*','https://seller.ozonru.cn/*']});
-  const buyer=buyerTabs.find(t=>t.status==='complete'),seller=sellerTabs.find(t=>t.status==='complete');
+  const {buyer,seller,report}=await requestEnvironment(seeds);await saveJob(id,{request_environment:report});
   if(!buyer||!seller)throw new Error('请在同一浏览器打开正常可访问的Ozon买家页和已登录的卖家页，再启动验证');
   let operations=0;const reads=[];
   async function call(stage,tab,files,func,args){
    const start=Date.now();await saveJob(id,{stage,operations,updated_at:new Date().toISOString()});
-   await chrome.scripting.executeScript({target:{tabId:tab},files});
-   const result=(await chrome.scripting.executeScript({target:{tabId:tab},func,args}))[0]?.result||{status:'empty_result'};
+   await chrome.scripting.executeScript({target:{tabId:tab},world:'ISOLATED',files});
+   const result=(await chrome.scripting.executeScript({target:{tabId:tab},world:'ISOLATED',func,args}))[0]?.result||{status:'empty_result'};
    operations++;reads.push({stage,sku:String(args[0]),elapsed_ms:Date.now()-start,result});await saveJob(id,{operations,reads:reads.slice(-200),updated_at:new Date().toISOString()});return result;
   }
   const ports={
@@ -24,6 +39,11 @@ async function runValidation(id,seeds,filters,company,concurrency){
  }catch(e){await saveJob(id,{status:'error',message:String(e.message||e).slice(0,300),finished_at:new Date().toISOString()});}finally{busy=false;}
 }
 chrome.runtime.onMessage.addListener((m,s,respond)=>{(async()=>{
+ if(m.action==='environment'){
+  if(busy)throw new Error('请等待当前验证暂停或结束后检查环境');
+  const seeds=String(m.skus||'').split(/[\s,，;；]+/).filter(x=>/^\d+$/.test(x));const {report}=await requestEnvironment(seeds);
+  await chrome.storage.local.set({apiEnvironment:report});await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({version:chrome.runtime.getManifest().version,request_environment:report},null,2)),filename:'ozon-request-environment.json',saveAs:true});return {status:'environment_exported'};
+ }
  if(m.action==='status')return (await chrome.storage.local.get('apiJob')).apiJob||{status:'idle'};
  if(m.action==='export'){
   const {apiJob}=await chrome.storage.local.get('apiJob');if(!apiJob)throw new Error('尚无诊断');

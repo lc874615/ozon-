@@ -4,7 +4,10 @@ async function readBuyerVariantsJson(sku){
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
  try{
   const path='/api/entrypoint-api.bx/page/json/v2?'+new URLSearchParams({url:'/modal/aspectsNew?product_id='+sku});
-  const r=await fetch(path,{credentials:'include',signal:controller.signal});if(!r.ok)return {status:[401,403,429].includes(r.status)?'access_or_rate_limit':'http_error',http_status:r.status};
+  const r=await fetch(path,{credentials:'include',signal:controller.signal});if(!r.ok){
+   const type=(r.headers.get('content-type')||'').split(';')[0];let finalOrigin=null,finalRoute='unknown';try{const u=new URL(r.url,location.origin);finalOrigin=u.origin;finalRoute=u.pathname.startsWith('/api/')?'api':/captcha|challenge|blocked/i.test(u.pathname)?'verification':'other';}catch{}
+   return {status:[401,403,429].includes(r.status)?'access_or_rate_limit':'http_error',http_status:r.status,response_metadata:{content_type:type,redirected:r.redirected,final_origin:finalOrigin,final_route:finalRoute,retry_after_present:r.headers.has('retry-after'),execution_world:'ISOLATED',credentials_mode:'include',request_kind:'normal_aspects_modal_get',automatic_retry:false}};
+  }
   const text=await r.text();if(text.length>4000000)return {status:'response_too_large'};const data=JSON.parse(text);
   if(data.incidentId||data.challengeURL||data.blockURL)return {status:'blocked_verification'};
   const variants=new Map([[String(sku),{sku:String(sku)}]]),widgetNames=[];let partial=false;

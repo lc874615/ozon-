@@ -1,7 +1,7 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Ozon API验证</title><style>body{font:14px sans-serif;width:380px;padding:12px;line-height:1.6}input,textarea,select{box-sizing:border-box;width:100%}button{padding:9px;margin:6px 3px}pre{white-space:pre-wrap;max-height:240px;overflow:auto}#state{background:#eef5ff;padding:10px}</style>
-<h3>Ozon API 本地验证 0.1.2</h3><p>独立测试包，不是正式采集结果。不打开商品页、不点击复制、不创建商品、不改价格库存。先在同一浏览器登录买家和卖家端。</p>
+<h3>Ozon API 本地验证 0.1.3</h3><p>独立测试包，不是正式采集结果。不打开商品页、不点击复制、不创建商品、不改价格库存。先在同一浏览器登录买家和卖家端。</p>
 <label>测试SKU（1–5个，每行一个）<textarea id="skus" rows="3" placeholder="先输入1个SKU"></textarea></label>
 <label>晚于此日期（可留空，但仍须取得日期）<input id="after_date" type="date"></label><label>最低参考价（人民币，含）<input id="amount_min" type="number" min="0" value="50"></label><label>最高参考价（人民币，含）<input id="amount_max" type="number" min="0" value="2000"></label><label>近28天最低销量（正整数）<input id="min_sold28" type="number" min="1" value="1"></label>
 <p>所有商品送达时效须≥7天；绿标价×1.10。读取接口返回的全部变体，各SKU独立验证。明确不合格的商品提前停止其后续请求。</p>
 <label>并发<select id="concurrency"><option value="1">1（首轮建议）</option><option value="2">2</option></select></label><label>卖家Shop编号（自动识别失败时填写，不是API Key）<input id="company" inputmode="numeric"></label>
-<button id="start">开始API验证</button><button id="export">导出API诊断</button><div id="state">未启动</div><details><summary>技术详情</summary><pre id="details"></pre></details><p>首次测试请保持弹窗打开。遇到403、429或验证停止新请求，不会绕过。即使字段齐全，也不等同于正式通过或可上架。</p><script src="popup.js"></script></html>
+<button id="environment">检查请求环境（不发请求）</button><button id="start">开始API验证</button><button id="export">导出API诊断</button><div id="state">未启动</div><details><summary>技术详情</summary><pre id="details"></pre></details><p>首次测试请保持弹窗打开。遇到403、429或验证停止新请求，不会绕过。即使字段齐全，也不等同于正式通过或可上架。</p><script src="popup.js"></script></html>

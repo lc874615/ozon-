@@ -15,6 +15,7 @@ async function sellerCopyUi(command){
  const copyHeading=headings.find(h=>/^(?:商品复制|复制商品|复制现成商品|Копирование товара|Копирование товаров|Copy product)$/i.test(h));
  const copyRoute=/\/app\/products\/copy(?:\/list)?\/?$/.test(location.pathname);
  const copySearch=Boolean(copyHeading&&copyRoute);
+ const selectedCounts=[...text.matchAll(/(?:已选择|已选|Выбрано|Selected)\s*[:：]?\s*(\d+)/gi)].map(m=>Number(m[1]));
  const packagingLabels=[...document.querySelectorAll('label,[class*="label"],[class*="Label"]')].filter(visible).map(e=>clean(e.textContent)).filter(t=>t.length<160&&/包装(?:长|宽|高|重量)|含包装重量|(?:Длина|Ширина|Высота|Вес).*упаков|(?:Package|Packaging).*(?:length|width|height|weight)/i.test(t));
  const parameterFormDetected=packagingLabels.length>0&&([...document.querySelectorAll('input[type="number"],[role="spinbutton"]')].some(visible)||[...document.querySelectorAll('input')].filter(visible).length>=4);
  const inventory=/\/products\/(?:list|archive)(?:\/|$)/.test(location.pathname);
@@ -22,12 +23,12 @@ async function sellerCopyUi(command){
  if(command.action==='inspect'){
   const inputs=[...document.querySelectorAll('input')].filter(e=>visible(e)&&!e.disabled&&['text','search'].includes(e.type));
   const loginSeen=/\/(?:login|auth)(?:\/|$)/i.test(location.pathname)||[...document.querySelectorAll('input[type="password"]')].some(visible);
-  const inspection={ready_state:document.readyState,path:location.pathname,headings:headings.slice(0,8).map(x=>x.slice(0,160)),copy_heading_found:!!copyHeading,copy_route:copyRoute,visible_search_inputs:inputs.length,input_hints:inputs.slice(0,8).map(e=>({placeholder:clean(e.placeholder).slice(0,160),aria_label:clean(e.getAttribute('aria-label')).slice(0,160),type:e.type})),delete_buttons:deleteButtons.length,restore_seen:restoreSeen,dialog_count:dialogs.length,parameter_form_detected:parameterFormDetected,packaging_labels:packagingLabels.slice(0,8)};
-  const status=loginSeen?'seller_login_required':restoreSeen||deleteButtons.length?'existing_draft_state':parameterFormDetected?'parameter_form_already_open':copySearch&&inputs.length?'clean_copy_search':copyRoute?'copy_search_not_ready':'not_copy_route';
+  const inspection={ready_state:document.readyState,path:location.pathname,headings:headings.slice(0,8).map(x=>x.slice(0,160)),copy_heading_found:!!copyHeading,copy_route:copyRoute,visible_search_inputs:inputs.length,input_hints:inputs.slice(0,8).map(e=>({placeholder:clean(e.placeholder).slice(0,160),aria_label:clean(e.getAttribute('aria-label')).slice(0,160),type:e.type})),delete_buttons:deleteButtons.length,restore_seen:restoreSeen,dialog_count:dialogs.length,parameter_form_detected:parameterFormDetected,packaging_labels:packagingLabels.slice(0,8),selected_counts:selectedCounts};
+  const status=loginSeen?'seller_login_required':restoreSeen||deleteButtons.length?'existing_draft_state':parameterFormDetected?'parameter_form_already_open':copySearch&&selectedCounts.some(n=>n>0)?'selected_product_state_already_open':copySearch&&inputs.length?'clean_copy_search':copyRoute?'copy_search_not_ready':'not_copy_route';
   return {status,page:source.origin+source.pathname+source.search,heading:copyHeading||headings[0]||'',draft_ids:draftIds,inspection};
  }
  if(command.action==='search'){
-  if(!copySearch||deleteButtons.length||restoreSeen||parameterFormDetected)return {status:'existing_state_do_not_touch'};
+  if(!copySearch||deleteButtons.length||restoreSeen||parameterFormDetected||selectedCounts.some(n=>n>0))return {status:'existing_state_do_not_touch'};
   const inputs=[...document.querySelectorAll('input')].filter(e=>visible(e)&&!e.disabled&&['text','search'].includes(e.type));
   const hinted=inputs.filter(e=>/sku|商品|产品|ссылк|назван|артикул/i.test(e.placeholder+' '+e.getAttribute('aria-label')));
   const target=hinted.length===1?hinted[0]:inputs.length===1?inputs[0]:null;
@@ -57,13 +58,21 @@ async function sellerCopyUi(command){
   if(!command.copy_clicked||!copySearch||restoreSeen||deleteButtons.length)return {status:'not_owned_selection_step'};
   const skuInput=[...document.querySelectorAll('input')].some(e=>visible(e)&&e.value===command.sku);
   if(!skuInput)return {status:'selected_source_sku_not_visible'};
-  const next=exact(['下一步','填写特征','继续','Далее','Продолжить','Заполнить характеристики','Next','Continue']);
-  const continues=next.filter(e=>['继续','Продолжить','Continue'].some(n=>labelKey(n)===labelKey(e.innerText)));
+  const continueNames=['继续','Продолжить','Continue'];
+  let continues=exact(continueNames);
+  if(!continues.length){
+   // The site may use a clickable div/span rather than a semantic button.
+   continues=[...document.querySelectorAll('a,span,div')].filter(e=>visible(e)&&!e.children.length&&continueNames.some(n=>labelKey(n)===labelKey(e.textContent))).filter(e=>{
+    for(let p=e.parentElement,depth=0;p&&p!==document.body&&depth<5;p=p.parentElement,depth++)if(/(?:已选择|已选|Выбрано|Selected)\s*[:：]?\s*1(?!\d)/i.test(clean(p.innerText)))return true;
+    return false;
+   });
+  }
   if(continues.length){
-   // The floating selection toolbar belongs to this single-item transaction only.
    const counts=[...text.matchAll(/(?:已选择|已选|Выбрано|Selected)\s*[:：]?\s*(\d+)/gi)].map(m=>Number(m[1]));
    if(counts.length!==1||counts[0]!==1)return {status:'selected_count_not_single',selected_counts:counts};
   }
+  // Prefer the selection toolbar's Continue over the step heading "填写特征".
+  const next=continues.length?continues:exact(['下一步','填写特征','Далее','Заполнить характеристики','Next']);
   if(next.length!==1)return {status:'parameter_step_control_not_ready',matches:next.length,inspection:{path:location.pathname,headings:headings.slice(0,4),parameter_form_detected:parameterFormDetected,controls:buttons.slice(0,30).map(e=>({text:clean(e.innerText).slice(0,100),aria_label:clean(e.getAttribute('aria-label')).slice(0,100),disabled:!!e.disabled,aria_disabled:e.getAttribute('aria-disabled')}))}};
   if(next[0].getAttribute('aria-disabled')==='true')return {status:'parameter_step_control_disabled'};
   const control_label=clean(next[0].innerText);next[0].click();return {status:'parameter_step_clicked',control_label};

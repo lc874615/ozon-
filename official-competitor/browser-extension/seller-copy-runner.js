@@ -98,9 +98,22 @@ async function sellerCopyTick(){
    if(r?.status==='exact_sku_card_not_loaded'){j.copy_intent_at=null;j.cleanup_required=false;j.phase='copy';await save();wakeSellerCopy(2000);return;}
    if(r?.status==='blocked_verification'){j.phase='copy';j.copy_intent_at=null;j.cleanup_required=false;await save();return await stopSellerCopy('verification_required');}
    if(r?.status!=='copy_clicked'){j.phase='copy_uncertain';await save();return await stopSellerCopy(r?.status||'copy_result_unknown');}
-   j.phase='read';j.phase_at=Date.now();await save();wakeSellerCopy(2500);return;
+   j.phase='continue';j.phase_at=Date.now();await save();wakeSellerCopy(1000);return;
   }
   if(j.phase==='copy_in_flight'||j.phase==='delete_in_flight'||j.phase==='discard_in_flight'||j.phase==='back_in_flight')return await stopSellerCopy('mutation_result_unknown_do_not_retry');
+  if(j.phase==='continue'){
+   if(j.parameter_step_intent_at)return await stopSellerCopy('parameter_step_result_unknown_do_not_retry');
+   j.parameter_step_intent_at=new Date().toISOString();if(!await save())return;
+   const next=await copyUi(j.tab_id,{action:'open-parameter-step',copy_clicked:!!j.copy_intent_at,sku:j.sku});j.last_parameter_step=next;event('continue',next?.status);
+   if(next?.status!=='parameter_step_clicked')j.parameter_step_intent_at=null;
+   if(next?.status==='blocked_verification'){await save();return await stopSellerCopy('verification_required');}
+   if(next?.status==='parameter_step_clicked'||next?.status==='parameters_already_open'){
+    if(next.status==='parameter_step_clicked')j.parameter_step_clicked_at=new Date().toISOString();else j.parameter_step_not_needed=true;
+    j.phase='read';j.phase_at=Date.now();await save();wakeSellerCopy(1500);return;
+   }
+   await save();if(Date.now()-j.phase_at>=15000)return await finishSellerCopySkip('continue_control_not_confirmed');
+   wakeSellerCopy(1000);return;
+  }
   if(j.phase==='read'){
    const form=(await chrome.scripting.executeScript({target:{tabId:j.tab_id},files:['form-reader.js']}))[0]?.result;
    const identity=await copyUi(j.tab_id,{action:'draft-identity'});if(identity?.status==='blocked_verification')return await stopSellerCopy('verification_required');

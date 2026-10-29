@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>Ozon 运营采集</title>
 <style>body{font:14px sans-serif;width:370px;padding:12px;line-height:1.5}button{padding:8px;margin:4px}input,textarea{width:95%}pre{white-space:pre-wrap}#live-progress{background:#eef5ff;padding:12px;border-radius:8px;margin-bottom:14px}progress{display:block;width:100%;height:20px;margin:8px 0}#progress-counts{font-weight:bold}#progress-stage,#progress-data{margin:8px 0}#progress-updated{color:#555}#notice{color:#124d85}</style>
-<h3>Ozon 采集与参数工作台 0.5.11 · 合格目标与异常补位</h3>
+<h3>Ozon 采集与参数工作台 0.5.12 · 自动继续进入参数页</h3>
 <section id="live-progress" aria-label="采集实时进度"><strong id="progress-title">正在读取进度…</strong><progress id="batch-progress" value="0" max="1" aria-label="本批已处理进度"></progress><div id="progress-numbers"></div><div id="progress-counts"></div><div id="progress-stage"></div><div id="progress-data"></div><div id="progress-seller"></div><small id="progress-history"></small><div id="progress-goal"></div><small id="progress-updated"></small></section>
 <p id="notice" role="status" aria-live="polite"></p><div id="last-operation"></div><label>本次要验证的来源SKU<input id="sku-hint" inputmode="numeric" placeholder="例如3556224138"></label><p>先读取此SKU的销量和日期，再运行此SKU的单件卖家流程。手动绑定不是启动自动流程。</p>
 <label>今日上架目标（仅记录）<input id="target" type="number" min="1" max="1000"></label><button id="save-target">保存今日目标</button>

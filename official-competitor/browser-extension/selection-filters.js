@@ -22,7 +22,7 @@ function evaluateCaptureFilters(data,settings){
  const brandRows=values(['бренд','brand','品牌']);
  const blocked=brandRows.find(row=>internationalBrands.includes(norm(row.value)));
  const title=norm(data.title);const titleSignal=internationalBrands.find(b=>new RegExp('(^|[^a-z0-9])'+b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'([^a-z0-9]|$)','i').test(title));
- push('international_brand_exclusion',blocked?'exclude':!brandRows.length&&titleSignal?'review':'pass',blocked||(!brandRows.length&&titleSignal?{source:'title_brand_signal_not_identity_proof',value:titleSignal}:brandRows[0]||null));
+ push('international_brand_exclusion',blocked?'exclude':titleSignal?'review':'pass',blocked||(titleSignal?{source:'title_brand_signal_not_identity_proof',value:titleSignal}:brandRows[0]||null));
  const digits=s=>/^\d+$/.test(s)?Number(s):null;
  e=one(['продано за 28 дней, шт','sales in 28 days','销量（近28天）','近28天销量']);
  const sold=e?digits(e.value):null;push('sold28',sold===null?'review':sold>=f.min_sold28?'pass':'exclude',e);

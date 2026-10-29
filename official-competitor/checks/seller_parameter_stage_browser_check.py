@@ -14,10 +14,14 @@ with sync_playwright() as p:
  page.evaluate("document.body.insertAdjacentHTML('beforeend','<div id=selected>已选择：2</div>')")
  assert call({'action':'open-parameter-step','copy_clicked':True,'sku':'123'})['status']=='selected_count_not_single'
  page.locator('#selected').evaluate("e=>e.textContent='已选择：1'")
+ page.evaluate("document.body.insertAdjacentHTML('afterbegin','<div role=button id=step-heading>填写特征</div>')")
  assert call({'action':'open-parameter-step','copy_clicked':False,'sku':'123'})['status']=='not_owned_selection_step'
  assert call({'action':'open-parameter-step','copy_clicked':True,'sku':'999'})['status']=='selected_source_sku_not_visible'
  assert call({'action':'open-parameter-step','copy_clicked':True,'sku':'123'})['status']=='parameter_step_clicked'
  assert call({'action':'inspect'})['status']=='parameter_form_already_open'
  assert call({'action':'search','sku':'999'})['status']=='existing_state_do_not_touch'
  assert page.locator('input').first.input_value()=='650'
+ page.set_content('<h1>商品复制</h1><input type=search value=123><div><span>已选择：1</span><div onclick="window.nonsemanticContinue=true"><span>继续</span></div></div>')
+ assert call({'action':'open-parameter-step','copy_clicked':True,'sku':'123'})['status']=='parameter_step_clicked'
+ assert page.evaluate('window.nonsemanticContinue') is True
  browser.close();print('PASS only owned exact-SKU selection advances to parameters; parameter page is never mistaken for search or overwritten')

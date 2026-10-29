@@ -19,3 +19,5 @@ console.log('PASS exact date/price/volume boundaries, no RUB substitution, missi
 
 d=structuredClone(data);d.properties.push({name:'履约方式',value:'FBO'});assert.equal(result(d).decision,'exclude');
 d=structuredClone(data);d.properties[0].value='2';d.properties.push({name:'履约方式',value:'FBS'});assert.equal(result(d).decision,'pass');
+
+d=structuredClone(data);d.title='Godox C100 camera';d.properties[1].value='без бренда';assert.equal(result(d).decision,'review');

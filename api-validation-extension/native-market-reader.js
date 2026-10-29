@@ -14,7 +14,7 @@ async function readNativeSellerMarket(sku,configuredCompanyId){
   if(!response.ok)return {status:[401,403,429].includes(response.status)?'access_or_rate_limit':'http_error',http_status:response.status,retry_after_seconds:/^\d+$/.test(response.headers.get('Retry-After')||'')?Number(response.headers.get('Retry-After')):null};
   const text=await response.text();if(text.length>4000000)return {status:'response_too_large'};
   const data=JSON.parse(text),matches=(Array.isArray(data.items)?data.items:[]).filter(i=>String(i.sku)===String(sku));
-  if(matches.length!==1)return {status:matches.length?'ambiguous_exact_sku':'sku_not_found',exact_matches:matches.length};
+  if(matches.length!==1)return {status:matches.length?'ambiguous_exact_sku':'sku_not_found',exact_matches:matches.length,diagnostics:{query_mode:'exact_sku',requested_sku:String(sku),returned_items:Array.isArray(data.items)?data.items.length:0,top_level_fields:Object.keys(data).slice(0,25),row_fields:(Array.isArray(data.items)?data.items:[]).slice(0,2).map(r=>Object.keys(r).slice(0,30)),other_sku_rows:(Array.isArray(data.items)?data.items:[]).filter(r=>String(r.sku)!==String(sku)).length}};
   const row=matches[0],properties=[],at=new Date().toISOString();
   const add=(name,value,field,extra={})=>properties.push({name,value:String(value),original_field:field,source:'authenticated_seller_what_to_sell_same_vendor_method',captured_at:at,query_period:'monthly',...extra});
   if(row.soldCount!==null&&row.soldCount!==undefined&&/^\d+$/.test(String(row.soldCount)))add('近28天销量',row.soldCount,'soldCount',{period_days:28,period_basis:'official_what_to_sell_28_day_documentation',metric_mapping:'same_vendor_soldCount'});

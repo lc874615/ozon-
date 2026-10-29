@@ -12,6 +12,7 @@ async function readReadonlyVariantPackaging(sku,configuredCompanyId,verifiedVari
  const request=async(path,body)=>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{const response=await fetch(path,{method:'POST',credentials:'include',signal:controller.signal,headers:{'Content-Type':'application/json','x-o3-company-id':company,'x-o3-language':'RU'},body:JSON.stringify(body)});
+   diagnostics.push({path,http_status:response.status,content_type:(response.headers.get('content-type')||'').split(';')[0]});
    if(!response.ok)return {status:[401,403,429].includes(response.status)?'access_or_rate_limit':'http_error',http_status:response.status};
    const text=await response.text();if(text.length>4000000)return {status:'response_too_large'};const data=JSON.parse(text);
    diagnostics.push({path,top_level_fields:Object.keys(data).slice(0,25),item_fields:(Array.isArray(data.items)?data.items:[]).slice(0,2).map(r=>Object.keys(r).slice(0,25)),variant_fields:(Array.isArray(data.variants)?data.variants:[]).slice(0,2).map(r=>Object.keys(r).slice(0,25))});

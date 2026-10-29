@@ -85,7 +85,7 @@ async function readBuyerProductJson(sku){
     }
    }
   }
-  if(delivery.minimum_days===null){
+  if(delivery.minimum_days===null||!widgets.some(([k,v])=>/^web(?:Short)?Characteristics/.test(k)&&Object.keys(v||{}).length)){
    // This is the additional read-only product-layout request observed in the supplied plugin.
    // Do not execute unknown asyncAction descriptors: they can represent state-changing actions.
    const supplementalPath='/api/entrypoint-api.bx/page/json/v2?'+new URLSearchParams({url:'/product/'+sku+'/?layout_container=pdpPage2column&layout_page_index=2'});

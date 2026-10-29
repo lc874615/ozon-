@@ -27,7 +27,8 @@ async function collectApiBatch(seedSkus,ports,{filters={},concurrency=2,history=
   const missing=mandatorySelectionGaps(review);if(missing.length)return {sku,status:'essential_data_missing',missing,buyer,market,review};
   if(blocked.value)return {sku,status:'not_completed_after_batch_pause'};
   const pack=await ports.packaging(sku,market.variant_id);if(limited(pack)){blocked.value=true;blocked.reason=pack.status;return {sku,status:'paused',reason:pack.status};}
-  if(!pack.identity_verified||String(pack.requested_sku)!==sku)return {sku,status:'packaging_identity_not_verified'};
+  if(pack.status==='http_error')return {sku,status:'packaging_endpoint_error',http_status:pack.http_status,packaging:pack};
+  if(!pack.identity_verified||String(pack.requested_sku)!==sku)return {sku,status:'packaging_identity_not_verified',packaging:pack};
   const packaging=extractPackaging({fields:(pack.properties||[]).map(p=>({label:p.name,value:p.value}))});
   return {sku,status:packaging.complete?'api_data_complete':'packaging_incomplete',buyer,market,packaging,review,note:'not_formally_passed_until_all_business_checks_and_tasks_resolved'};
  }

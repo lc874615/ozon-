@@ -12,7 +12,7 @@ async function autoQueueAction(m){
  if(autoBusy)return {status:'busy'};
  const {autoQueue:old,collectionQueue=[],snapshots={},captureFilters={}}=await chrome.storage.local.get(['autoQueue','collectionQueue','snapshots','captureFilters']);
  if(old?.status==='running')return {status:'already_running'};
- if(m.require_complete_collection){const {sellerCopyConfig:c}=await chrome.storage.local.get('sellerCopyConfig');if(!c?.enabled_in_buyer_queue)return {status:'seller_setup_required',message:'请先在干净的卖家复制搜索页启用流程，再回买家搜索页开始'};}
+ if(m.require_complete_collection&&typeof ensureAutomaticSellerEntry==='function')await ensureAutomaticSellerEntry();
  const filters=parseFilterSettings(m.filters||captureFilters);
  await chrome.storage.local.set({captureFilters:filters});
  const limit=Number(m.limit||5);if(!Number.isInteger(limit)||limit<1||limit>100)return {status:'error',message:'单批请输入1至100件'};

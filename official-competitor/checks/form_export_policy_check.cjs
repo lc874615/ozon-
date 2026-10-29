@@ -8,5 +8,5 @@ vm.createContext(c);vm.runInContext(fs.readFileSync('browser-extension/backgroun
 function call(message){return new Promise(resolve=>handler(message,{},resolve));}
 (async()=>{assert.equal((await call({action:'queue'})).status,'disabled');assert.equal(scriptCalls,0);
  const r=await call({action:'capture-form',sku_hint:'123'});assert.equal(r.status,'exported_loaded_fields');assert.equal(scriptCalls,1);assert.equal(downloads.length,1);
- const data=JSON.parse(decodeURIComponent(downloads[0].url.split(',').slice(1).join(',')));assert.equal(data.user_supplied_source_sku_hint,'123');assert.equal(data.extension_version,'0.5.13');
+ const data=JSON.parse(decodeURIComponent(downloads[0].url.split(',').slice(1).join(',')));assert.equal(data.user_supplied_source_sku_hint,'123');assert.equal(data.extension_version,'0.5.14');
  console.log('PASS current-tab user-triggered export, temporary permissions only, data URL download, no batch or cookie access');})();

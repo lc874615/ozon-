@@ -68,6 +68,16 @@ async function advanceSellerBatch(){
  if(await sellerAlreadyCollected(b.skus[b.index])){b.results.push({sku:b.skus[b.index],status:'skipped_already_collected',cleanup_required:false});b.index++;await chrome.storage.local.set({sellerCopyBatch:b});await advanceSellerBatch();return;}
  await startSellerCopy(b.skus[b.index],b.id);
 }
+const AUTOMATIC_SELLER_COPY_URL='https://seller.ozonru.cn/app/products/copy/list';
+async function ensureAutomaticSellerEntry(){
+ const {sellerCopyConfig:old,sellerCopyJob:j}=await chrome.storage.local.get(['sellerCopyConfig','sellerCopyJob']);
+ if(j?.status==='running'||j?.status==='paused')return old||null;
+ let tab=null;
+ if(old?.tab_id){try{tab=await chrome.tabs.get(old.tab_id);}catch{}}
+ if(!tab)tab=await chrome.tabs.create({url:AUTOMATIC_SELLER_COPY_URL,active:false});
+ const config={...(old||{}),tab_id:tab.id,copy_url:AUTOMATIC_SELLER_COPY_URL,enabled_in_buyer_queue:true,automatic_entry:true,configured_at:new Date().toISOString()};
+ await chrome.storage.local.set({sellerCopyConfig:config});return config;
+}
 async function armSellerCopy(){
  const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab?.id)throw new Error('请在干净的复制现成商品搜索页点击此按钮');
  const {sellerCopyJob:old}=await chrome.storage.local.get('sellerCopyJob');if(old?.status==='running')throw new Error('上次任务尚未确认清理，不能开始新任务');
@@ -76,14 +86,16 @@ async function armSellerCopy(){
 }
 async function startSellerCopy(sku,batchId=null){
  if(!/^\d+$/.test(String(sku||'')))throw new Error('请输入待验证的来源SKU');
+ await ensureAutomaticSellerEntry();
  if(await sellerAlreadyCollected(String(sku)))return {status:'seller_already_collected',sku:String(sku)};
  const {sellerCopyConfig:config,sellerCopyJob:old}=await chrome.storage.local.get(['sellerCopyConfig','sellerCopyJob']);
  if(!config)throw new Error('请先在干净复制搜索页启用自动流程');
  if(old?.status==='running')throw new Error('已有任务运行，不能重复复制');
  const {sellerCopyLedger=[]}=await chrome.storage.local.get('sellerCopyLedger');if(sellerCopyLedger.some(e=>e.sku===String(sku)&&e.cleanup_required))throw new Error('这个SKU已有未清理记录，不再重复复制');
  let taskTab=null,reused=false;
- try{const existing=await chrome.tabs.get(config.tab_id);if(existing?.status==='complete'){const ready=await copyUi(config.tab_id,{action:'inspect'});if(ready?.status==='clean_copy_search'){taskTab=existing;reused=true;}}}catch{}
+ try{const existing=await chrome.tabs.get(config.tab_id);if(existing?.status==='complete'){const ready=await copyUi(config.tab_id,{action:'inspect'});if(ready?.status==='clean_copy_search'){taskTab=config.automatic_entry&&typeof chrome.tabs.update==='function'?await chrome.tabs.update(config.tab_id,{url:AUTOMATIC_SELLER_COPY_URL}):existing;reused=true;}}}catch{}
  if(!taskTab)taskTab=await chrome.tabs.create({url:config.copy_url,active:false});
+ if(config.automatic_entry)await chrome.storage.local.set({sellerCopyConfig:{...config,tab_id:taskTab.id}});
  await chrome.storage.local.set({sellerCopyJob:{id:crypto.randomUUID(),sku:String(sku),batch_id:batchId,tab_id:taskTab.id,reused_armed_tab:reused,copy_url:config.copy_url,status:'running',phase:'init',started_at:new Date().toISOString(),phase_at:Date.now(),cleanup_required:false,deletion_verified:false,events:[]}});
  await chrome.alarms.create(COPY_ALARM,{periodInMinutes:0.5});wakeSellerCopy(0);return {status:'seller_copy_started'};
 }
@@ -204,6 +216,7 @@ chrome.runtime.onStartup.addListener(()=>stopSellerCopy('browser_restarted_no_mu
 chrome.runtime.onInstalled.addListener(()=>stopSellerCopy('extension_updated_no_mutation_retry'));
 
 async function ensureSellerCopyForSku(sku){
+ await ensureAutomaticSellerEntry();
  const {sellerCopyConfig:config,sellerCopyJob:j,sellerCopyBatch:b}=await chrome.storage.local.get(['sellerCopyConfig','sellerCopyJob','sellerCopyBatch']);
  if(!config?.enabled_in_buyer_queue)return {status:'disabled'};
  if(j?.sku===sku){if(j.status==='running')return {status:'waiting'};if(j.status==='paused')return {status:'paused'};if(['completed','completed_partial','skipped'].includes(j.status))return {status:'done',terminal_status:j.status,reason:j.reason,discard_verified:j.discard_verified===true,cleanup_required:j.cleanup_required};}

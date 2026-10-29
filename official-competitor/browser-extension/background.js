@@ -21,7 +21,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     if(message.action==='resume-market-read'){
       const {nativeMarketBlocked:b,autoQueue:q}=await store.get(['nativeMarketBlocked','autoQueue']);if(b?.retry_not_before>Date.now())throw new Error('接口要求继续等待，请稍后再试');await store.set({nativeMarketBlocked:null});if(q?.status==='paused'&&q.reason==='seller_market_access_limited'){q.status='running';q.reason=null;await store.set({autoQueue:q});await chrome.alarms.create(AUTO_ALARM,{periodInMinutes:0.5});scheduleAutoTick(0);}return {status:'market_read_resumed'};
     }
-    if(message.action==='test-packaging-single'){if(!/^\d+$/.test(String(message.sku_hint||'')))throw new Error('请在顶部填写来源SKU');await armSellerCopy();return startSellerCopy(message.sku_hint);}
+    if(message.action==='test-packaging-single'){if(!/^\d+$/.test(String(message.sku_hint||'')))throw new Error('请在顶部填写来源SKU');await ensureAutomaticSellerEntry();return startSellerCopy(message.sku_hint);}
     if(message.action==='arm-seller-copy')return armSellerCopy();
     if(message.action==='read-market-sku'){if(!/^\d+$/.test(String(message.sku_hint||'')))throw new Error('请输入来源SKU');return syncNativeMarketForSku(message.sku_hint);}
     if(message.action==='start-seller-copy'){if(!/^\d+$/.test(String(message.sku_hint||'')))throw new Error('请输入来源SKU');const market=await syncNativeMarketForSku(message.sku_hint);if(market.pause_required||market.status==='blocked_until_user_handles')return {status:'analysis_access_paused'};return {...await startSellerCopy(message.sku_hint),analysis_status:market.status};}

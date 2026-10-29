@@ -21,4 +21,9 @@ with sync_playwright() as p:
  page.evaluate("window.demo.autoQueue.status='paused';window.demo.autoQueue.reason='verification_required'")
  page.wait_for_function("document.getElementById('progress-title').textContent==='已暂停'")
  assert '手动完成' in page.locator('#progress-stage').inner_text()
+ page.evaluate("window.demo.autoQueue={status:'paused',reason:'candidate_pool_exhausted_target_unmet',target_pass:5,index:10,urls:Array(10).fill('a'),counts:{pass:2,exclude:4,review:4}};window.notify({autoQueue:{}},'local')")
+ page.wait_for_function("document.getElementById('progress-numbers').textContent.includes('还差 3 件')")
+ assert page.locator('#batch-progress').evaluate('(e)=>e.max')==5
+ assert page.locator('#batch-progress').evaluate('(e)=>e.value')==2
+ assert '目标尚未补齐' in page.locator('#progress-stage').inner_text()
  browser.close();print('PASS Chinese progress bar/counts, no false pass count, storage-driven updates, one-second polling and pause explanation')

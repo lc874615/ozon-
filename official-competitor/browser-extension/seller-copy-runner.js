@@ -94,6 +94,7 @@ async function sellerCopyTick(){
    // Persist intent BEFORE a potentially creating click. Never retry an ambiguous copy.
    j.copy_intent_at=new Date().toISOString();j.cleanup_required=true;j.phase='copy_in_flight';if(!await save())return;
    const r=await copyUi(j.tab_id,{action:'copy',sku:j.sku});j.last_copy_result=r;event('copy',r?.status);
+   if(r?.status==='exact_sku_card_not_loaded'&&r.inspection?.no_results_message&&Date.now()-j.phase_at>=6000){j.copy_intent_at=null;j.cleanup_required=false;j.phase='copy';await save();return await finishSellerCopySkip('seller_search_no_results');}
    if(r?.status==='exact_sku_card_not_loaded'){j.copy_intent_at=null;j.cleanup_required=false;j.phase='copy';await save();wakeSellerCopy(2000);return;}
    if(r?.status==='blocked_verification'){j.phase='copy';j.copy_intent_at=null;j.cleanup_required=false;await save();return await stopSellerCopy('verification_required');}
    if(r?.status!=='copy_clicked'){j.phase='copy_uncertain';await save();return await stopSellerCopy(r?.status||'copy_result_unknown');}

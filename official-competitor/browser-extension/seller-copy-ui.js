@@ -48,13 +48,21 @@ async function sellerCopyUi(command){
   if(!command.copy_clicked||!copySearch||restoreSeen||deleteButtons.length)return {status:'not_owned_selection_step'};
   const skuInput=[...document.querySelectorAll('input')].some(e=>visible(e)&&e.value===command.sku);
   if(!skuInput)return {status:'selected_source_sku_not_visible'};
-  const next=exact(['下一步','填写特征','Далее','Заполнить характеристики','Next']);
-  if(next.length!==1)return {status:'parameter_step_control_not_ready',matches:next.length};
-  next[0].click();return {status:'parameter_step_clicked'};
+  const next=exact(['下一步','填写特征','继续','Далее','Продолжить','Заполнить характеристики','Next','Continue']);
+  const continues=next.filter(e=>['继续','Продолжить','Continue'].some(n=>labelKey(n)===labelKey(e.innerText)));
+  if(continues.length){
+   // The floating selection toolbar belongs to this single-item transaction only.
+   const counts=[...text.matchAll(/(?:已选择|已选|Выбрано|Selected)\s*[:：]?\s*(\d+)/gi)].map(m=>Number(m[1]));
+   if(counts.length!==1||counts[0]!==1)return {status:'selected_count_not_single',selected_counts:counts};
+  }
+  if(next.length!==1)return {status:'parameter_step_control_not_ready',matches:next.length,inspection:{path:location.pathname,headings:headings.slice(0,4),parameter_form_detected:parameterFormDetected,controls:buttons.slice(0,30).map(e=>({text:clean(e.innerText).slice(0,100),aria_label:clean(e.getAttribute('aria-label')).slice(0,100),disabled:!!e.disabled,aria_disabled:e.getAttribute('aria-disabled')}))}};
+  if(next[0].getAttribute('aria-disabled')==='true')return {status:'parameter_step_control_disabled'};
+  const control_label=clean(next[0].innerText);next[0].click();return {status:'parameter_step_clicked',control_label};
  }
  if(command.action==='draft-identity')return {status:'identity_read',draft_ids:draftIds,heading:clean(document.querySelector('h1')?.innerText)};
  if(command.action==='back-from-parameters'){
   if(!command.form_read_confirmed)return {status:'parameter_read_not_confirmed'};
+  if(copySearch&&!parameterFormDetected)return {status:'still_on_copy_search_do_not_navigate'};
   const candidates=exact(['返回','Назад','Back']);
   const links=[...document.querySelectorAll('a[href]')].filter(a=>visible(a)&&['返回','Назад','Back'].includes(clean(a.innerText))&&(()=>{try{const u=new URL(a.href),expected=new URL(command.copy_url);return u.origin===expected.origin&&u.pathname===expected.pathname;}catch{return false;}})());
   const labelled=[...document.querySelectorAll('button[aria-label],[role="button"][aria-label]')].filter(e=>visible(e)&&['返回','Назад','Back'].includes(clean(e.getAttribute('aria-label'))));

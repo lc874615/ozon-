@@ -119,7 +119,11 @@ async function sellerCopyTick(){
    j.captured_properties=properties;j.draft_id=identity?.draft_ids?.length===1?identity.draft_ids[0]:null;
    const {sellerEvidence={}}=await chrome.storage.local.get('sellerEvidence');sellerEvidence[j.sku]=[...(sellerEvidence[j.sku]||[]),...properties];await chrome.storage.local.set({sellerEvidence});
    event('read',packaging.complete?'packaging_read':'packaging_'+packaging.status);
-   if(!(form?.fields?.length||form?.read_only_attributes?.length)){await save();return await finishSellerCopySkip('parameter_form_not_loaded_cannot_exit_safely');}
+   // A search input is not proof that the product parameter form opened.
+   const formFields=form?.fields||[],formAttrs=form?.read_only_attributes||[];
+   const searchOnly=/\/app\/products\/copy(?:\/list)?\/?$/.test(form?.page?.path||'')&&formAttrs.length===0&&formFields.length<=1&&formFields.every(f=>/SKU|条形码|Ozon链接|商品名称|search/i.test([f.label,f.input_type].join(' ')));
+   j.form_snapshot=form;
+   if(searchOnly||!(formFields.length||formAttrs.length)){await save();return await finishSellerCopySkip(searchOnly?'copy_did_not_open_parameter_form_no_back_attempt':'parameter_form_not_loaded_cannot_exit_safely');}
    j.form_snapshot=form;j.form_signature=parameterSnapshotSignature(form);
    j.phase='back';j.phase_at=Date.now();await save();wakeSellerCopy();return;
   }

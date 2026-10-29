@@ -13,7 +13,7 @@ function parseFilterSettings(raw={}){
 function evaluateCaptureFilters(data,settings){
  const f=parseFilterSettings(settings),checks=[],props=data.properties||[];
  const norm=v=>String(v||'').trim().toLowerCase().replace(/\s+/g,' ');
- const values=names=>props.filter(p=>names.includes(norm(p.name))).map(p=>({value:String(p.value).trim(),source:p.source||'labelled_product_property',label:p.name}));
+ const values=names=>props.filter(p=>names.includes(norm(p.name))).map(p=>({value:String(p.value).trim(),source:p.source||'labelled_product_property',label:p.name,is_estimate:!!p.is_estimate,calculation:p.calculation||null}));
  const one=names=>{const a=values(names);return a.length&&new Set(a.map(x=>norm(x.value))).size===1?a[0]:null;};
  const push=(field,state,evidence=null)=>checks.push({field,state,evidence});
  const scheme=one(['схема продаж','sales schema','履约方式','发货方式']);
@@ -34,7 +34,7 @@ function evaluateCaptureFilters(data,settings){
  }
  if(f.amount_min!==null||f.amount_max!==null){
   const names=f.amount_metric==='unit_price'?['售价（人民币）','销售价格（人民币）','sale price, cny']:['近28天销售额（人民币）','sales revenue in 28 days, cny'];
-  e=one(names);const amount=e&&/^\d+(?:\.\d+)?$/.test(e.value)?Number(e.value):null;
+  e=values(names).length?one(names):f.amount_metric==='unit_price'?one(['参考售价估计（人民币）']):null;const amount=e&&/^\d+(?:\.\d+)?$/.test(e.value)?Number(e.value):null;
   push(f.amount_metric,amount===null||!Number.isFinite(amount)?'review':(f.amount_min===null||amount>=f.amount_min)&&(f.amount_max===null||amount<=f.amount_max)?'pass':'exclude',e);
  }
  return {decision:checks.some(x=>x.state==='exclude')?'exclude':checks.some(x=>x.state==='review')?'review':'pass',settings:f,checks,scope:'observed_evidence_only_not_listing_approval'};

@@ -1,48 +1,8 @@
 {
-  "date": "2026-10-29",
-  "version": "0.5.6",
-  "scope": "current published text files; raw encrypted backup remains immutable0.5.5 snapshot",
+  "version": "0.5.7",
+  "type": "isolated_packaging_test",
+  "raw_data_included": false,
   "files": [
-    {
-      "path": "official-competitor/.gitignore",
-      "bytes": 83,
-      "sha256": "0a8437159bb5b0e40fa1bdf65a99d6c397396df74bbb48acf3fd7629fbca02f6"
-    },
-    {
-      "path": "official-competitor/FORM_EXPORT.md",
-      "bytes": 3332,
-      "sha256": "114b00c12c2f469bf2051a4b69c94dbb82a0d61062823cdda8f3f157aee21f4b"
-    },
-    {
-      "path": "official-competitor/HANDOFF.md",
-      "bytes": 7725,
-      "sha256": "40c9bb3a66b2aaa8d7f3741fb7e27c1bc4ec1a0361506470579a30dc4406e366"
-    },
-    {
-      "path": "official-competitor/INTEGRATED_CAPTURE.md",
-      "bytes": 18503,
-      "sha256": "990d6c3ab6a28956011c2e0f16c93ddbef3c15af35867730495871f441cc971e"
-    },
-    {
-      "path": "official-competitor/README.md",
-      "bytes": 5340,
-      "sha256": "3264293c5c5e7cb9c8a19a7c3c20b335c5a7871f66425341928adc471e5f116e"
-    },
-    {
-      "path": "official-competitor/START_NEW_CHAT.txt",
-      "bytes": 909,
-      "sha256": "a9608e06bc257402800e2266565274aa27d3c1d22974106ceb1849131d50e411"
-    },
-    {
-      "path": "official-competitor/backup-tools/join_restore.py",
-      "bytes": 1841,
-      "sha256": "b504f23808d82cb57d6560891b7ac95ae2e6795a14706445e2c3aa32ec651cb2"
-    },
-    {
-      "path": "official-competitor/backup-tools/restore_backup.py",
-      "bytes": 2440,
-      "sha256": "f8e3e8c7161678c180ecbc516a7fe696bca5cd3e8f619fd32927db147545e9f1"
-    },
     {
       "path": "official-competitor/browser-extension/attention.js",
       "bytes": 1861,
@@ -50,18 +10,18 @@
     },
     {
       "path": "official-competitor/browser-extension/auto-queue.js",
-      "bytes": 7733,
-      "sha256": "2672e37059b0eb82f302949964878fcb956b266a0502fd7bff2410bc4dcf3e07"
+      "bytes": 8671,
+      "sha256": "abace306b21521e14f4018313d9b8d5221639e97b16fc7e9bb573d9b161b6109"
     },
     {
       "path": "official-competitor/browser-extension/background.js",
-      "bytes": 14233,
-      "sha256": "fd0afcabdc077ec79152138ed431c0cd5c88d4ed27c8bae640b8cdeaf7cc4cfd"
+      "bytes": 15237,
+      "sha256": "c5ae130d3c010cb542601161c80a8b8060a1b97a74513bff46413033f02475a0"
     },
     {
       "path": "official-competitor/browser-extension/collector.js",
-      "bytes": 6051,
-      "sha256": "f4bcfdd0d26b4d6d9f1e97733ef3ce6c445f44998068323a64b344a61fe3ddbc"
+      "bytes": 7964,
+      "sha256": "cc1c67f5fa1c0250a02b95f50c2d68aada1ff767149d7dfa2e5a1db2191c27eb"
     },
     {
       "path": "official-competitor/browser-extension/delivery-reference.js",
@@ -84,9 +44,14 @@
       "sha256": "a998d2e75566083464f1806ab734c5b7991e46832017e0fdbf645c6d8f184643"
     },
     {
+      "path": "official-competitor/browser-extension/local-reparse.js",
+      "bytes": 2119,
+      "sha256": "1eea4691c3e1ca51546a25af6a489772cf0d80f597296e10491f4e074e0505c3"
+    },
+    {
       "path": "official-competitor/browser-extension/manifest.json",
-      "bytes": 602,
-      "sha256": "b41eedfbfd1edf3b7923f8dd1bee03c735d6af81e1a8a25a0209b866ad0c0c93"
+      "bytes": 656,
+      "sha256": "f58a0b2f9233552c1c61f9cd349bae168e9ac7dc66ed57682480a7e709dedbab"
     },
     {
       "path": "official-competitor/browser-extension/native-market-reader.js",
@@ -99,14 +64,19 @@
       "sha256": "e90fcd76892f2d33b19bb61ae178491ff77acc485d6af719b8184ff6b7d65b1f"
     },
     {
+      "path": "official-competitor/browser-extension/packaging-reader.js",
+      "bytes": 3278,
+      "sha256": "3ce6c74d83c6a0196f23d69a2bc1831626090570d6c23a7a3ec15b3d5ea35850"
+    },
+    {
       "path": "official-competitor/browser-extension/popup.html",
-      "bytes": 6015,
-      "sha256": "0b8af387c64b0b3862639f050fc5ac504d831894c232d3d0d7e3c42217b471ad"
+      "bytes": 6494,
+      "sha256": "4deff07a9c6002488ae4df82c71807211216d4636a8c651e98b52100a3529a84"
     },
     {
       "path": "official-competitor/browser-extension/popup.js",
-      "bytes": 5166,
-      "sha256": "7aeb02f3fb6af35551cf7fd57e52efe6f5bd6d762f47f8b44b126f528a15f67c"
+      "bytes": 5320,
+      "sha256": "bfd1268f03cee1b5e5d5df1b258d0806cc0a487ba27628263b3211af242662fb"
     },
     {
       "path": "official-competitor/browser-extension/prepare-characteristics.js",
@@ -114,34 +84,44 @@
       "sha256": "e5b0c9bcef4ae5e01da2c04e76f6821089bdc52e8b07ed3af3c26721ec23807f"
     },
     {
+      "path": "official-competitor/browser-extension/price-reader.js",
+      "bytes": 5457,
+      "sha256": "2e75b4899f839c844f4b5071d911bd9b3afaa12f243c2ed93e2c2f19a3c226da"
+    },
+    {
       "path": "official-competitor/browser-extension/progress-view.js",
-      "bytes": 5569,
-      "sha256": "2531f4e2471915b22aa143fa2036105c8c4eb860bc9810608e4d6da455cee423"
+      "bytes": 6277,
+      "sha256": "5445f2878018af36777ee759c943153486b6280e821a163e2595fdb79738b997"
     },
     {
       "path": "official-competitor/browser-extension/selection-filters.js",
-      "bytes": 4951,
-      "sha256": "598b113b2dc55ed4f5422062d76be60a35f1b4abe42a9eadd4023f3a37d36508"
+      "bytes": 5111,
+      "sha256": "cf4fb033be0d04e3ab301ce5a7ba2c4a44642e88dfbadb94a076f3e0695460a1"
     },
     {
       "path": "official-competitor/browser-extension/seller-copy-runner.js",
-      "bytes": 16033,
-      "sha256": "51b0748d4d73f442f13a9c9b8e2985898cbb120cd8b60a669b8f3c8355ae099b"
+      "bytes": 17709,
+      "sha256": "caa67da746bb720fd219c37b7e51b705ac72886c2cf154ac83a87a2386767578"
     },
     {
       "path": "official-competitor/browser-extension/seller-copy-ui.js",
-      "bytes": 6974,
-      "sha256": "2f3d8f3083cd7575604767523468caeb03dfcf761b7e8e8b8d7844532083321e"
+      "bytes": 8636,
+      "sha256": "aaa9e087f1dd35dcecbc2def5f90d7dbfefc03cd3b29b88a3f5e1d65cd7cd0a3"
     },
     {
       "path": "official-competitor/browser-extension/seller-sync.js",
-      "bytes": 4316,
-      "sha256": "5efe7996242f66bdf5f4e81e2fbd022aa1fd2e4fb72ac22df66764cebac9efa9"
+      "bytes": 3693,
+      "sha256": "33d9b7190bef8f8872134228b8fec6af0c4fbd909980c8b844b0a171ae3859aa"
     },
     {
       "path": "official-competitor/browser-extension/seller-visible-reader.js",
       "bytes": 2535,
       "sha256": "9fbf5a89c0f4378d9a51b3c7a86e708d16c1cb3f433e30be8853dea78fb587bb"
+    },
+    {
+      "path": "official-competitor/checks/action_trace_check.cjs",
+      "bytes": 1274,
+      "sha256": "8bd84c552f8491f7d1ecbfae707aad25441269527026668b3a700f2762e78c11"
     },
     {
       "path": "official-competitor/checks/attention_check.cjs",
@@ -175,13 +155,13 @@
     },
     {
       "path": "official-competitor/checks/filtered_export_check.cjs",
-      "bytes": 1430,
-      "sha256": "f1ca4b7c2508bd5f08e596503b1bd39521676c6e7f6fb8a994eef6117aa84a40"
+      "bytes": 1448,
+      "sha256": "e63de70fb67a94f34115bf8257664e78884cc97f2f98d1fffcdc4951d7c34dd5"
     },
     {
       "path": "official-competitor/checks/form_export_policy_check.cjs",
       "bytes": 1895,
-      "sha256": "b254acf165ae5d839a7766b151db3ffe32a855dabffeb77689d373b85399ef96"
+      "sha256": "217809dea4a62a9775e764db8fb977cc678c78d97367486c8310ee4233f80580"
     },
     {
       "path": "official-competitor/checks/form_reader_browser_check.py",
@@ -199,6 +179,11 @@
       "sha256": "b478128e8bdb8c2bf877bee64c3f6b18acdb119c9cc3a7b3400a9c288994f208"
     },
     {
+      "path": "official-competitor/checks/local_price_reparse_check.cjs",
+      "bytes": 1552,
+      "sha256": "e2b37d6cca1cf15881a5b3d0f48040f0b4317b07c249ee349d8680275bfd7155"
+    },
+    {
       "path": "official-competitor/checks/native_market_browser_check.py",
       "bytes": 1847,
       "sha256": "be5c412308f71253bcd0473b4136aa7b66ef434e495fff4768b53171fd29713f"
@@ -207,6 +192,26 @@
       "path": "official-competitor/checks/native_market_sync_check.cjs",
       "bytes": 1660,
       "sha256": "0726c4f69f3af43b30cefe7e92ee02af4deded4bc889e1a9e21eca8fd66f43d6"
+    },
+    {
+      "path": "official-competitor/checks/packaging_reader_check.cjs",
+      "bytes": 1774,
+      "sha256": "83bcbff3a1ba429b113390b43d5dccbbc939d0c073e4c0ed6521dc947cf01fc0"
+    },
+    {
+      "path": "official-competitor/checks/post_market_filter_gate_check.cjs",
+      "bytes": 2247,
+      "sha256": "68b45d5d32c429062be7b1ab000adfe06576b86d05a1bdae7e3eeb3f2fa29b42"
+    },
+    {
+      "path": "official-competitor/checks/preliminary_exclusion_check.cjs",
+      "bytes": 2079,
+      "sha256": "06f282112c70e3ab8632762ea6ff1ae66c17dfaa7a2802292859d1de4ef32525"
+    },
+    {
+      "path": "official-competitor/checks/price_reader_browser_check.py",
+      "bytes": 2174,
+      "sha256": "9a2ee7d7d543701ef96c3759fd1fe12fbe9ffb940ac628401e9131de09055190"
     },
     {
       "path": "official-competitor/checks/progress_browser_check.py",
@@ -220,8 +225,8 @@
     },
     {
       "path": "official-competitor/checks/seller_copy_runner_check.cjs",
-      "bytes": 3490,
-      "sha256": "cf0ab0b8614837cbe7cc7ef3ee339e35f54d3ca21bf8e4b925e7233b6cee8908"
+      "bytes": 4510,
+      "sha256": "e7e564b7c7772a4874ef049d1f82bb21e97d5cb7d70ac4f19c1f34217c10f741"
     },
     {
       "path": "official-competitor/checks/seller_copy_ui_browser_check.py",
@@ -229,9 +234,14 @@
       "sha256": "2e9c57348e0a20a6fa7618ed12a2183bfba5ea44a1cffe5e69714168560c5029"
     },
     {
+      "path": "official-competitor/checks/seller_parameter_stage_browser_check.py",
+      "bytes": 1759,
+      "sha256": "65d313c6d95070d1f1745fa0b2e734ff6131762a6fdd996c225f51bdf67175a3"
+    },
+    {
       "path": "official-competitor/checks/seller_sync_check.cjs",
-      "bytes": 1815,
-      "sha256": "eaa7e427b5fce18bc9070e83cd5a48ce9a043e709089ab2f59a28e3bfd3df4e3"
+      "bytes": 1898,
+      "sha256": "099856c127d1278327b4ea917b46f6adc99ecad01cc0da9b0f83959f6ddebf2a"
     },
     {
       "path": "official-competitor/checks/seller_visible_browser_check.py",
@@ -239,94 +249,24 @@
       "sha256": "e35a6c2dfc94104323b914bb7e9e6c62464fe3f81a49f721afc7cbdd60af8eac"
     },
     {
-      "path": "official-competitor/ozon_operator/__init__.py",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "path": "official-competitor/ozon_operator/__main__.py",
-      "bytes": 861,
-      "sha256": "4f1b5dce0faf75b1b4d8332e7531678894671ae011af5d0c13e4a54cbf3e9fb8"
-    },
-    {
-      "path": "official-competitor/ozon_operator/market_selection.py",
-      "bytes": 2442,
-      "sha256": "949ee7a512059628ecc39f0d571699b1f1cccf0c1ac14b9e547373197195c54b"
-    },
-    {
-      "path": "official-competitor/ozon_operator/official_market_export.py",
-      "bytes": 9709,
-      "sha256": "abad503d9f886b0393c54c6d408bd569d3114f4f0f3e4acc119de57737d367a6"
-    },
-    {
-      "path": "official-competitor/requirements.txt",
-      "bytes": 17,
-      "sha256": "9bba605fd7b6ea23038de15e5a1ae6714b3d3fb14ed2d6e6bedbfb0665ca2122"
-    },
-    {
-      "path": "official-competitor/tests/test_official_market_export.py",
-      "bytes": 4099,
-      "sha256": "827bbc4ce714eef434f8f9824b32db99bc22a5ccd612fae13b43d3493742504b"
+      "path": "official-competitor/PACKAGING_TEST.md",
+      "bytes": 2360,
+      "sha256": "d94fc4161d512ebfe38c5c8c3699c7f396fa7ef2b9902898ca1b96137d7e2b7e"
     },
     {
       "path": "README.md",
-      "bytes": 1164,
-      "sha256": "e5cb9bad6b743c4d47bb62e63493822975d69f67ef539cd2b507131992431406"
+      "bytes": 273,
+      "sha256": "e00f9a70634d1e58c721eb1f58a8c1273ec196a0c2feeb96e0b5bd9e7655f210"
     },
     {
-      "path": "START_HERE.md",
-      "bytes": 862,
-      "sha256": "8a60818cfbcf34be984eec446c7e74e10a3091437acff8202a58beffa591e8c0"
-    },
-    {
-      "path": "backups/README.md",
-      "bytes": 1483,
-      "sha256": "942838f8a7de39f544a06eec60c509f7cb9f417c99539d0bfb73e48bf5ff85a4"
-    },
-    {
-      "path": "backups/CURRENT.json",
-      "bytes": 7156,
-      "sha256": "376c719f43d343abfe3a4f4fd3993533d3b3b87573970a02ce3f483e171608e3"
-    },
-    {
-      "path": ".gitignore",
-      "bytes": 113,
-      "sha256": "d32e3cb32edc63eba9aa9bf9d0d217b812def549b9d4c491bf317288ba678539"
-    },
-    {
-      "path": "START_NEW_CHAT.txt",
-      "bytes": 909,
-      "sha256": "a9608e06bc257402800e2266565274aa27d3c1d22974106ceb1849131d50e411"
-    },
-    {
-      "path": "HANDOFF.md",
-      "bytes": 194,
-      "sha256": "88f4ede43c1a4b81842b950e685da2db9991e039944eb89efbdcf374883562cf"
-    },
-    {
-      "path": "backup-20261029/README.md",
-      "bytes": 262,
-      "sha256": "7806f019bfbd5f997d7bed505f90ded34d4ae986ba3d23ff5b63ce5b35c4dbeb"
-    },
-    {
-      "path": "backup-20261029/HANDOFF.md",
-      "bytes": 129,
-      "sha256": "d9cd6cc6a35e219c259e2ca78eee0cf6447a048a3fe743bdfc945a293303e4b7"
-    },
-    {
-      "path": "backup-20261029/START_NEW_CHAT.txt",
-      "bytes": 909,
-      "sha256": "a9608e06bc257402800e2266565274aa27d3c1d22974106ceb1849131d50e411"
-    },
-    {
-      "path": "official-competitor/checks/action_trace_check.cjs",
-      "bytes": 1274,
-      "sha256": "8bd84c552f8491f7d1ecbfae707aad25441269527026668b3a700f2762e78c11"
+      "path": "PACKAGING_TEST_META.json",
+      "bytes": 230,
+      "sha256": "aa1488431bda696492166cdfeb21ff8662bd47bdf743c2dd03500fb67db43410"
     },
     {
       "path": "PUBLICATION_SCOPE.md",
-      "bytes": 562,
-      "sha256": "3b31d92871745d6fc99a4b9ca6218cd9a4ff5cda10c2de8f5cb9b34bf88b9f35"
+      "bytes": 324,
+      "sha256": "d2f08db7abc78cdfec2630a6b966fd686e8108e789ce87cc26f6ddb0f150048f"
     }
   ]
 }

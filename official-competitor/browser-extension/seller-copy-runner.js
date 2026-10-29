@@ -1,8 +1,9 @@
+function parameterSnapshotSignature(form){return JSON.stringify({fields:(form?.fields||[]).map(f=>({label:f.label,value:f.value,units:f.unit_text_candidates||[],section:f.section_heading||''})),readonly:(form?.read_only_attributes||[]).map(f=>({label:f.label,value:f.value}))});}
 async function sellerAlreadyCollected(sku){
  const {sellerCollectionHistory={},sellerEvidence={},sellerCopyJob:j}=await chrome.storage.local.get(['sellerCollectionHistory','sellerEvidence','sellerCopyJob']);
  if(sellerCollectionHistory[sku])return true;
- if(j?.sku===sku&&(j.captured_properties?.length||0)>=4)return true;
- const labels=new Set((sellerEvidence[sku]||[]).filter(p=>/包装|упаковк/i.test(p.name)).map(p=>p.name));return labels.size>=4;
+ if(j?.sku===sku&&extractPackaging({fields:(j.captured_properties||[]).map(p=>({label:p.name,value:p.value}))}).complete)return true;
+ return extractPackaging({fields:(sellerEvidence[sku]||[]).map(p=>({label:p.name,value:p.value}))}).complete;
 }
 let sellerCopyBusy=false,sellerCopyTimer=null;
 const COPY_ALARM='ozon-seller-copy-workflow';
@@ -61,8 +62,10 @@ async function startSellerCopy(sku,batchId=null){
  if(!config)throw new Error('请先在干净复制搜索页启用自动流程');
  if(old?.status==='running')throw new Error('已有任务运行，不能重复复制');
  const {sellerCopyLedger=[]}=await chrome.storage.local.get('sellerCopyLedger');if(sellerCopyLedger.some(e=>e.sku===String(sku)&&e.cleanup_required))throw new Error('这个SKU已有未清理记录，不再重复复制');
- const taskTab=await chrome.tabs.create({url:config.copy_url,active:false});
- await chrome.storage.local.set({sellerCopyJob:{id:crypto.randomUUID(),sku:String(sku),batch_id:batchId,tab_id:taskTab.id,copy_url:config.copy_url,status:'running',phase:'init',started_at:new Date().toISOString(),phase_at:Date.now(),cleanup_required:false,deletion_verified:false,events:[]}});
+ let taskTab=null,reused=false;
+ try{const existing=await chrome.tabs.get(config.tab_id);if(existing?.status==='complete'){const ready=await copyUi(config.tab_id,{action:'inspect'});if(ready?.status==='clean_copy_search'){taskTab=existing;reused=true;}}}catch{}
+ if(!taskTab)taskTab=await chrome.tabs.create({url:config.copy_url,active:false});
+ await chrome.storage.local.set({sellerCopyJob:{id:crypto.randomUUID(),sku:String(sku),batch_id:batchId,tab_id:taskTab.id,reused_armed_tab:reused,copy_url:config.copy_url,status:'running',phase:'init',started_at:new Date().toISOString(),phase_at:Date.now(),cleanup_required:false,deletion_verified:false,events:[]}});
  await chrome.alarms.create(COPY_ALARM,{periodInMinutes:0.5});wakeSellerCopy(0);return {status:'seller_copy_started'};
 }
 async function sellerCopyTick(){
@@ -96,25 +99,35 @@ async function sellerCopyTick(){
    if(r?.status!=='copy_clicked'){j.phase='copy_uncertain';await save();return await stopSellerCopy(r?.status||'copy_result_unknown');}
    j.phase='read';j.phase_at=Date.now();await save();wakeSellerCopy(2500);return;
   }
-  if(j.phase==='copy_in_flight'||j.phase==='delete_in_flight'||j.phase==='discard_in_flight')return await stopSellerCopy('mutation_result_unknown_do_not_retry');
+  if(j.phase==='copy_in_flight'||j.phase==='delete_in_flight'||j.phase==='discard_in_flight'||j.phase==='back_in_flight')return await stopSellerCopy('mutation_result_unknown_do_not_retry');
   if(j.phase==='read'){
    const form=(await chrome.scripting.executeScript({target:{tabId:j.tab_id},files:['form-reader.js']}))[0]?.result;
    const identity=await copyUi(j.tab_id,{action:'draft-identity'});if(identity?.status==='blocked_verification')return await stopSellerCopy('verification_required');
-   const names=['包装长度，毫米','包装宽度，毫米','包装高度，毫米','含包装重量，克','Длина упаковки, мм','Ширина упаковки, мм','Высота упаковки, мм','Вес с упаковкой, г'];
-   const properties=(form?.fields||[]).filter(f=>names.includes(String(f.label||'').replace(/\s*[*＊]\s*$/,'').trim())&&/^\d+(?:\.\d+)?$/.test(String(f.value))).map(f=>({name:String(f.label).replace(/\s*[*＊]\s*$/,'').trim(),value:String(f.value),source:'single_sku_copy_ui_transaction',source_sku:j.sku,captured_at:form.captured_at,source_page:form.page.origin+form.page.path}));
-   if(properties.length<4&&Date.now()-j.phase_at<15000){wakeSellerCopy(2000);return;}
-   if(properties.length>=4){const {sellerCollectionHistory={}}=await chrome.storage.local.get('sellerCollectionHistory');sellerCollectionHistory[j.sku]={captured_at:new Date().toISOString(),fields:properties.length,job_id:j.id};await chrome.storage.local.set({sellerCollectionHistory});}
+   const packaging=extractPackaging(form);j.packaging_capture=packaging;
+   const properties=packaging.properties.map(p=>({...p,source:'single_sku_copy_ui_transaction',source_sku:j.sku,captured_at:form.captured_at,source_page:form.page.origin+form.page.path}));
+   if(!packaging.candidates.length&&!j.parameter_step_clicked_at&&!j.parameter_step_not_needed){
+    if(j.parameter_step_intent_at)return await stopSellerCopy('parameter_step_result_unknown_do_not_retry');
+    j.parameter_step_intent_at=new Date().toISOString();if(!await save())return;
+    const next=await copyUi(j.tab_id,{action:'open-parameter-step',copy_clicked:!!j.copy_intent_at,sku:j.sku});j.last_parameter_step=next;event('open_parameters',next?.status);
+    if(next?.status!=='parameter_step_clicked')j.parameter_step_intent_at=null;
+    if(next?.status==='parameters_already_open')j.parameter_step_not_needed=true;
+    if(next?.status==='blocked_verification'){await save();return await stopSellerCopy('verification_required');}
+    if(next?.status==='parameter_step_clicked'){j.parameter_step_clicked_at=new Date().toISOString();j.phase_at=Date.now();await save();wakeSellerCopy(2000);return;}
+   }
+   if(!packaging.complete&&Date.now()-j.phase_at<15000){await save();wakeSellerCopy(2000);return;}
+   if(packaging.complete){const {sellerCollectionHistory={}}=await chrome.storage.local.get('sellerCollectionHistory');sellerCollectionHistory[j.sku]={captured_at:new Date().toISOString(),complete:true,field_keys:Object.keys(packaging.values),verified_units:true,job_id:j.id};await chrome.storage.local.set({sellerCollectionHistory});}
    j.captured_properties=properties;j.draft_id=identity?.draft_ids?.length===1?identity.draft_ids[0]:null;
    const {sellerEvidence={}}=await chrome.storage.local.get('sellerEvidence');sellerEvidence[j.sku]=[...(sellerEvidence[j.sku]||[]),...properties];await chrome.storage.local.set({sellerEvidence});
-   event('read',properties.length>=4?'packaging_read':'packaging_incomplete');
-   if(!form?.fields?.length){await save();return await finishSellerCopySkip('parameter_form_not_loaded_cannot_exit_safely');}
-   j.form_snapshot=form;j.form_signature=JSON.stringify(form.fields.map(f=>({label:f.label,value:f.value})));
+   event('read',packaging.complete?'packaging_read':'packaging_'+packaging.status);
+   if(!(form?.fields?.length||form?.read_only_attributes?.length)){await save();return await finishSellerCopySkip('parameter_form_not_loaded_cannot_exit_safely');}
+   j.form_snapshot=form;j.form_signature=parameterSnapshotSignature(form);
    j.phase='back';j.phase_at=Date.now();await save();wakeSellerCopy();return;
   }
   if(j.phase==='back'){
    const current=(await chrome.scripting.executeScript({target:{tabId:j.tab_id},files:['form-reader.js']}))[0]?.result;
-   if(!current||JSON.stringify(current.fields.map(f=>({label:f.label,value:f.value})))!==j.form_signature)return await finishSellerCopySkip('parameter_form_changed_before_exit');
-   const r=await copyUi(j.tab_id,{action:'back-from-parameters',form_read_confirmed:true,copy_url:j.copy_url});event('back',r?.status);
+   if(!current||parameterSnapshotSignature(current)!==j.form_signature)return await finishSellerCopySkip('parameter_form_changed_before_exit');
+   let r=await copyUi(j.tab_id,{action:'back-from-parameters',form_read_confirmed:true,copy_url:j.copy_url});event('back',r?.status);
+   if(r?.status==='back_button_ambiguous_or_missing'&&r.candidates===0&&typeof chrome.tabs.goBack==='function'){j.phase='back_in_flight';if(!await save())return;await chrome.tabs.goBack(j.tab_id);j.back_method='browser_history_one_step_after_verified_parameter_form';r={status:'back_clicked'};event('back','browser_back_triggered');}
    if(r?.status==='blocked_verification')return await stopSellerCopy('verification_required');
    if(r?.status!=='back_clicked'){await save();return await finishSellerCopySkip(r?.status||'back_not_available');}
    j.phase='discard';j.back_clicked_at=new Date().toISOString();j.phase_at=Date.now();await save();wakeSellerCopy(700);return;
@@ -133,7 +146,7 @@ async function sellerCopyTick(){
    const r=await copyUi(j.tab_id,{action:'verify-discard',copy_url:j.copy_url});
    if(r?.status==='blocked_verification')return await stopSellerCopy('verification_required');
    if(r?.status!=='discard_return_confirmed'){wakeSellerCopy(1000);return;}
-   j.discard_verified=true;j.discard_verification_scope=r.verification_scope;j.cleanup_required=false;j.status='completed';j.reason='copy_read_back_discard_ui_verified';j.finished_at=new Date().toISOString();event('verify_discard','returned_after_exit_without_saving');await save();await chrome.alarms.clear(COPY_ALARM);await advanceSellerBatch();return;
+   j.discard_verified=true;j.discard_verification_scope=r.verification_scope;j.cleanup_required=false;j.status=j.packaging_capture?.complete?'completed':'completed_partial';j.reason=j.packaging_capture?.complete?'copy_read_back_discard_ui_verified':'packaging_incomplete_but_exit_confirmed';j.finished_at=new Date().toISOString();event('verify_discard','returned_after_exit_without_saving');await save();await chrome.alarms.clear(COPY_ALARM);await advanceSellerBatch();return;
   }
   return await stopSellerCopy('unsupported_workflow_phase');
  }catch(e){const reason='ui_workflow_error: '+String(e.message||e).slice(0,180);const {sellerCopyJob:current}=await chrome.storage.local.get('sellerCopyJob');if(/access|denied|403|429/i.test(reason))await stopSellerCopy(reason);else if(current?.copy_intent_at)await finishSellerCopySkip(reason);else await stopSellerCopy(reason);}
@@ -146,7 +159,7 @@ chrome.runtime.onInstalled.addListener(()=>stopSellerCopy('extension_updated_no_
 async function ensureSellerCopyForSku(sku){
  const {sellerCopyConfig:config,sellerCopyJob:j,sellerCopyBatch:b}=await chrome.storage.local.get(['sellerCopyConfig','sellerCopyJob','sellerCopyBatch']);
  if(!config?.enabled_in_buyer_queue)return {status:'disabled'};
- if(j?.sku===sku){if(j.status==='running')return {status:'waiting'};if(j.status==='paused')return {status:'paused'};if(['completed','skipped'].includes(j.status))return {status:'done',cleanup_required:j.cleanup_required};}
+ if(j?.sku===sku){if(j.status==='running')return {status:'waiting'};if(j.status==='paused')return {status:'paused'};if(['completed','completed_partial','skipped'].includes(j.status))return {status:'done',cleanup_required:j.cleanup_required};}
  if(j?.status==='running')return {status:'waiting'};
  if(await sellerAlreadyCollected(sku))return {status:'done',already_collected:true};
  if(b?.status==='running')return {status:'waiting'};

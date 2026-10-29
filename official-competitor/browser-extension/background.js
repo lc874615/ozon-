@@ -1,5 +1,11 @@
 // User-started collection and scoped seller UI flow; no publication actions.
-importScripts('attention.js','selection-filters.js','seller-sync.js','native-market-sync.js','auto-queue.js','seller-copy-runner.js');
+importScripts('price-reader.js','packaging-reader.js','local-reparse.js','attention.js','selection-filters.js','seller-sync.js','native-market-sync.js','auto-queue.js','seller-copy-runner.js');
+function currentSnapshotReview(data,filters,sellerEvidence={},listingDateEvidence={}){
+ const enriched=withListingEvidence(withSellerEvidence(withSavedPriceEvidence(data),sellerEvidence),listingDateEvidence);
+ const review=evaluateCaptureFilters(enriched,filters);
+ if(data.collection_status==='partial'&&review.decision!=='exclude'){review.decision='review';review.checks.push({field:'loaded_attributes',state:'review',evidence:null});}
+ return review;
+}
 let actionLogChain=Promise.resolve();
 function rememberAction(message,result){
  if(['status','get-filters'].includes(message.action))return Promise.resolve();
@@ -8,12 +14,14 @@ function rememberAction(message,result){
 chrome.runtime.onMessage.addListener((message,sender,respond)=>{
   (async()=>{
     const store=chrome.storage.local;
+    if(message.action==='reparse-local-prices')return reparseSavedPriceObservations();
     if(message.action==='save-market-company'){
       const value=String(message.company_id||'').trim();if(value&&!/^\d+$/.test(value))throw new Error('店铺编号只接受数字');await store.set({marketCompanyId:value,nativeMarketCache:{}});return {status:'market_company_saved'};
     }
     if(message.action==='resume-market-read'){
       const {nativeMarketBlocked:b,autoQueue:q}=await store.get(['nativeMarketBlocked','autoQueue']);if(b?.retry_not_before>Date.now())throw new Error('接口要求继续等待，请稍后再试');await store.set({nativeMarketBlocked:null});if(q?.status==='paused'&&q.reason==='seller_market_access_limited'){q.status='running';q.reason=null;await store.set({autoQueue:q});await chrome.alarms.create(AUTO_ALARM,{periodInMinutes:0.5});scheduleAutoTick(0);}return {status:'market_read_resumed'};
     }
+    if(message.action==='test-packaging-single'){if(!/^\d+$/.test(String(message.sku_hint||'')))throw new Error('请在顶部填写来源SKU');await armSellerCopy();return startSellerCopy(message.sku_hint);}
     if(message.action==='arm-seller-copy')return armSellerCopy();
     if(message.action==='read-market-sku'){if(!/^\d+$/.test(String(message.sku_hint||'')))throw new Error('请输入来源SKU');return syncNativeMarketForSku(message.sku_hint);}
     if(message.action==='start-seller-copy'){if(!/^\d+$/.test(String(message.sku_hint||'')))throw new Error('请输入来源SKU');const market=await syncNativeMarketForSku(message.sku_hint);if(market.pause_required||market.status==='blocked_until_user_handles')return {status:'analysis_access_paused'};return {...await startSellerCopy(message.sku_hint),analysis_status:market.status};}
@@ -29,10 +37,10 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     if(message.action==='bind-seller-form')return bindSellerForm(message.sku_hint);
     if(message.action.startsWith('auto-'))return await autoQueueAction(message);
     const validLink=raw=>{try{const u=new URL(raw);return u.protocol==='https:'&&['ozon.ru','www.ozon.ru'].includes(u.hostname)&&/^\/product\/(?:[^/]*-)?\d+\/?$/.test(u.pathname)?u.origin+u.pathname:null;}catch{return null;}};
-    const run=async file=>{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab?.id)throw new Error('请先打开商品或搜索页面');return (await chrome.scripting.executeScript({target:{tabId:tab.id},files:file==='collector.js'?['delivery-reference.js','collector.js']:[file]}))[0]?.result;};
+    const run=async file=>{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});if(!tab?.id)throw new Error('请先打开商品或搜索页面');return (await chrome.scripting.executeScript({target:{tabId:tab.id},files:file==='collector.js'?['price-reader.js','delivery-reference.js','collector.js']:[file]}))[0]?.result;};
     if(message.action==='export-diagnostics'){
-      const {snapshots={},autoQueue=null,sellerSync=null,sellerEvidence={},sellerCopyJob=null,sellerCopyBatch=null,sellerCopyLedger=[],nativeMarketLast=null,actionTrace=[],sellerCopyConfig=null,marketCompanyId=''}=await store.get(['snapshots','autoQueue','sellerSync','sellerEvidence','sellerCopyJob','sellerCopyBatch','sellerCopyLedger','nativeMarketLast','actionTrace','sellerCopyConfig','marketCompanyId']);
-      const data={version:chrome.runtime.getManifest().version,exported_at:new Date().toISOString(),actionTrace,seller_automation_enabled:!!sellerCopyConfig?.enabled_in_buyer_queue,market_company_configured:!!marketCompanyId,autoQueue,sellerSync,sellerEvidence,sellerCopyJob,sellerCopyBatch,sellerCopyLedger,nativeMarketLast,observations:Object.values(snapshots).map(d=>({product_id:d.product_id,status:d.status,title:d.title,collection_status:d.collection_status,collection_issue:d.collection_issue,captured_at:d.captured_at,collection_timing:d.collection_timing,diagnostics:d.diagnostics,seller_properties:d.seller_properties,delivery_observation:d.delivery_observation,source_url:d.source_url,images_count:(d.images||[]).length,price_widget_text:d.price_widget_text,properties:d.properties,selection_review:d.selection_review}))};
+      const {snapshots={},autoQueue=null,sellerSync=null,sellerEvidence={},sellerCopyJob=null,sellerCopyBatch=null,sellerCopyLedger=[],nativeMarketLast=null,actionTrace=[],sellerCopyConfig=null,marketCompanyId='',captureFilters={},listingDateEvidence={}}=await store.get(['snapshots','autoQueue','sellerSync','sellerEvidence','sellerCopyJob','sellerCopyBatch','sellerCopyLedger','nativeMarketLast','actionTrace','sellerCopyConfig','marketCompanyId','captureFilters','listingDateEvidence']);
+      const data={version:chrome.runtime.getManifest().version,exported_at:new Date().toISOString(),actionTrace,seller_automation_enabled:!!sellerCopyConfig?.enabled_in_buyer_queue,market_company_configured:!!marketCompanyId,autoQueue,sellerSync,sellerEvidence,sellerCopyJob,sellerCopyBatch,sellerCopyLedger,nativeMarketLast,observations:Object.values(snapshots).map(d=>({product_id:d.product_id,status:d.status,title:d.title,collection_status:d.collection_status,collection_issue:d.collection_issue,captured_at:d.captured_at,collection_timing:d.collection_timing,diagnostics:d.diagnostics,seller_properties:d.seller_properties,seller_stage_skipped:d.seller_stage_skipped,delivery_observation:d.delivery_observation,source_url:d.source_url,images_count:(d.images||[]).length,price_widget_text:d.price_widget_text,price_observation:withSavedPriceEvidence(d).price_observation,attribute_property_count:d.attribute_property_count,properties:d.properties,selection_review:currentSnapshotReview(d,captureFilters,sellerEvidence,listingDateEvidence),selection_review_source:'recomputed_from_current_evidence'}))};
       await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-collection-diagnostics.json',saveAs:true});return {status:'diagnostics_exported'};
     }
     if(message.action==='capture-listing-dates'){
@@ -90,8 +98,8 @@ chrome.runtime.onMessage.addListener((message,sender,respond)=>{
     }
     if(message.action==='export'){
       const {snapshots={},captureFilters={},listingDateEvidence={},sellerEvidence={}}=await chrome.storage.local.get(['snapshots','captureFilters','listingDateEvidence','sellerEvidence']);
-      const evaluated=Object.values(snapshots).map(d=>{const selection_review=evaluateCaptureFilters(withListingEvidence(withSellerEvidence(d,sellerEvidence),listingDateEvidence),captureFilters);if(d.collection_status==='partial'){selection_review.decision='review';selection_review.checks.push({field:'loaded_attributes',state:'review',evidence:null});}return {...d,selection_review};});
-      const observations=evaluated.filter(d=>d.selection_review.decision==='pass').map(d=>withSellerEvidence(d,sellerEvidence));
+      const evaluated=Object.values(snapshots).map(d=>{const selection_review=currentSnapshotReview(d,captureFilters,sellerEvidence,listingDateEvidence);return {...d,selection_review};});
+      const observations=evaluated.filter(d=>d.selection_review.decision==='pass').map(d=>withSellerEvidence(withSavedPriceEvidence(d),sellerEvidence));
       const data={schema_version:4,source:'filtered_local_browser_observations',filter_settings:parseFilterSettings(captureFilters),summary:Object.fromEntries(['pass','exclude','review'].map(k=>[k,evaluated.filter(d=>d.selection_review.decision===k).length])),observations,
         audit:evaluated.filter(d=>d.selection_review.decision!=='pass').map(d=>({product_id:d.product_id,decision:d.selection_review.decision,checks:d.selection_review.checks}))};
       await chrome.downloads.download({url:'data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data,null,2)),filename:'ozon-filtered-observations.json',saveAs:true});

@@ -1,4 +1,4 @@
-const internationalBrands=['apple','samsung','sony','lg','philips','panasonic','dyson','bosch','siemens','makita','dewalt','nike','adidas','puma','reebok','new balance','gucci','louis vuitton','prada','chanel','dior','hermes','rolex','cartier','lego','ikea','xiaomi','huawei','oneplus','lenovo','asus','acer','dell','hp','canon','nikon','bose','jbl','nintendo','microsoft'];
+const internationalBrands=['apple','samsung','sony','lg','philips','panasonic','dyson','bosch','siemens','makita','dewalt','nike','adidas','puma','reebok','new balance','gucci','louis vuitton','prada','chanel','dior','hermes','rolex','cartier','lego','ikea','xiaomi','huawei','oneplus','lenovo','asus','acer','dell','hp','canon','nikon','bose','jbl','nintendo','microsoft','dji','godox'];
 // Evaluate only explicit, labelled observations. Missing evidence is review, never pass.
 function parseFilterSettings(raw={}){
  const date=String(raw.after_date||'');
@@ -51,6 +51,6 @@ function applyCollectionCompleteness(review,data,sellerProperties=[]){
  const packaging=extractPackaging({fields:sellerProperties.map(p=>({label:p.name,value:p.value}))});
  const outcome=data.seller_collection_outcome||{};
  const checks=[{field:'buyer_images',state:data.images?.length?'pass':'review',evidence:{count:(data.images||[]).length}},{field:'packaging_complete',state:packaging.complete?'pass':'review',evidence:{values:packaging.values,missing:packaging.missing}},
- {field:'copy_exit_state',state:outcome.cleanup_required||outcome.status==='disabled'||!data.seller_collection_outcome?'review':'pass',evidence:outcome}];
+ {field:'copy_exit_state',state:!outcome.cleanup_required&&(outcome.already_collected===true||outcome.terminal_status==='completed'&&outcome.discard_verified===true)?'pass':'review',evidence:outcome}];
  return {...review,checks:[...review.checks,...checks],decision:review.decision==='exclude'?'exclude':review.decision==='review'||checks.some(c=>c.state==='review')?'review':'pass'};
 }

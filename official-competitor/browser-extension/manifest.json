@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Ozon 采集与参数工作台",
-  "version": "0.5.9",
+  "version": "0.5.10",
   "description": "买家端串行队列采集，验证时暂停，完成后停止；另含卖家当前页参数导出。",
   "permissions": [
     "activeTab",
@@ -23,5 +23,5 @@
     "https://seller.ozon.ru/*",
     "https://seller.ozonru.cn/*"
   ],
-  "version_name": "0.5.9 screened buyer-seller collection"
+  "version_name": "0.5.10 exact SKU result diagnostics"
 }

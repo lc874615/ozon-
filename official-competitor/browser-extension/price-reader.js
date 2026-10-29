@@ -26,6 +26,17 @@ function readOzonPriceWidget(root){
    break;
   }
  }
+ // Some widgets replace the bank text with the explicit Ozon payment-price icon.
+ // Restrict to that named payment asset and the nearest single-price container.
+ for(const img of root.querySelectorAll('img[src]')){
+  let u;try{u=new URL(img.getAttribute('src'), 'https://www.ozon.ru');}catch{continue;}
+  if(!/^ir(?:-\d+)?\.(?:ozonstatic\.cn|ozone\.ru)$/.test(u.hostname)||!/^\/s3\/payments-cdn\/(?:wc\d+\/)?ozon-price-compact-new-ozon-light\.png$/.test(u.pathname))continue;
+  for(let parent=img.parentElement,depth=0;parent&&root.contains(parent)&&depth<7;parent=parent.parentElement,depth++){
+   const values=moneyIn(parent);if(!values.length)continue;
+   if(values.length===1)candidates.bank.push({cents:values[0],label:'official_ozon_payment_price_icon',source_asset:u.hostname+u.pathname});
+   break;
+  }
+ }
  const unique=kind=>[...new Set(candidates[kind].map(c=>c.cents))];const bank=unique('bank'),other=unique('other');
  const formatted=n=>(n/100).toFixed(2);
  const reference=bank.length===1?{value:formatted(Math.round(bank[0]*110/100)),currency:'CNY',is_estimate:true,source:'user_confirmed_payment_conditional_price_times_1_10',observed_bank_price:formatted(bank[0]),multiplier:'1.10',currency_basis:'user_confirmed_CNY_display_not_symbol_alone',settlement_price_verified:false}:null;

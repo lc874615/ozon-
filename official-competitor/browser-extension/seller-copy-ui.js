@@ -40,7 +40,16 @@ async function sellerCopyUi(command){
   if(!copySearch||deleteButtons.length||restoreSeen||parameterFormDetected)return {status:'existing_state_do_not_touch'};
   const anchors=[...document.querySelectorAll('a[href]')].filter(a=>{try{const u=new URL(a.href);return ['ozon.ru','www.ozon.ru'].includes(u.hostname)&&u.pathname.match(/(?:-|\/)(\d+)\/?$/)?.[1]===command.sku;}catch{return false;}});
   const matches=new Set();for(const a of anchors){let parent=a;for(let i=0;parent&&i<7;i++,parent=parent.parentElement){const adds=exact(['添加','Добавить','Add'],[...parent.querySelectorAll('button,[role="button"]')].filter(visible));if(adds.length===1){matches.add(adds[0]);break;}}}
-  if(matches.size!==1)return {status:matches.size?'ambiguous_matching_product':'exact_sku_card_not_loaded'};
+  // Some result cards render the SKU as text/data rather than a buyer link.
+  if(!matches.size){
+   const markers=[...document.querySelectorAll('[data-sku],[data-product-id],span,p')].filter(e=>visible(e)&&(e.getAttribute('data-sku')===command.sku||e.getAttribute('data-product-id')===command.sku||!e.children.length&&clean(e.textContent)===command.sku));
+   for(const marker of markers){for(let parent=marker,i=0;parent&&parent!==document.body&&i<7;parent=parent.parentElement,i++){
+    const adds=exact(['添加','Добавить','Add'],[...parent.querySelectorAll('button,[role="button"]')].filter(visible));
+    if(adds.length===1){matches.add(adds[0]);break;}
+   }}
+  }
+  if(matches.size!==1)return {status:matches.size?'ambiguous_matching_product':'exact_sku_card_not_loaded',inspection:{path:location.pathname,search_values:[...document.querySelectorAll('input')].filter(e=>visible(e)&&['text','search'].includes(e.type)).map(e=>e.value===command.sku?'requested_sku':e.value?'other_value':'empty'),matching_sku_anchors:anchors.length,add_controls:buttons.filter(e=>['添加','Добавить','Add'].some(n=>labelKey(n)===labelKey(e.innerText))).map(e=>({disabled:!!e.disabled,aria_disabled:e.getAttribute('aria-disabled')})),result_links:[...document.querySelectorAll('a[href]')].filter(visible).flatMap(a=>{try{const u=new URL(a.href);return ['ozon.ru','www.ozon.ru'].includes(u.hostname)&&u.pathname.startsWith('/product/')?[u.pathname]:[];}catch{return [];}}).slice(0,8),no_results_message:/未找到|没有找到|ничего не найдено|no results/i.test(text)}};
+
   [...matches][0].click();return {status:'copy_clicked',source_sku:command.sku};
  }
  if(command.action==='open-parameter-step'){

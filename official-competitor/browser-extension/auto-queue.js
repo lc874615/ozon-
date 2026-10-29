@@ -66,7 +66,7 @@ async function autoQueueTick(){
    if(preliminary.decision==='pass'){
     result.seller_stage_required=true;s.pending_buyer=result;await chrome.storage.local.set({autoQueue:s});
    }else result.seller_stage_skipped=preliminary.decision==='exclude'?'preliminary_filter_excluded':'preliminary_filter_needs_evidence';
-  }else result.seller_stage_skipped='known_price_or_international_brand_exclusion';
+  }else if(!s.pending_buyer)result.seller_stage_skipped='known_price_or_international_brand_exclusion';
   if(s.pending_buyer){
    const sellerFlow=await ensureSellerCopyForSku(expected);
    if(sellerFlow.status==='waiting'){scheduleAutoTick(2000);return;}

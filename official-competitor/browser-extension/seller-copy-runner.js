@@ -93,7 +93,7 @@ async function sellerCopyTick(){
   if(j.phase==='copy'){
    // Persist intent BEFORE a potentially creating click. Never retry an ambiguous copy.
    j.copy_intent_at=new Date().toISOString();j.cleanup_required=true;j.phase='copy_in_flight';if(!await save())return;
-   const r=await copyUi(j.tab_id,{action:'copy',sku:j.sku});event('copy',r?.status);
+   const r=await copyUi(j.tab_id,{action:'copy',sku:j.sku});j.last_copy_result=r;event('copy',r?.status);
    if(r?.status==='exact_sku_card_not_loaded'){j.copy_intent_at=null;j.cleanup_required=false;j.phase='copy';await save();wakeSellerCopy(2000);return;}
    if(r?.status==='blocked_verification'){j.phase='copy';j.copy_intent_at=null;j.cleanup_required=false;await save();return await stopSellerCopy('verification_required');}
    if(r?.status!=='copy_clicked'){j.phase='copy_uncertain';await save();return await stopSellerCopy(r?.status||'copy_result_unknown');}
@@ -164,7 +164,7 @@ chrome.runtime.onInstalled.addListener(()=>stopSellerCopy('extension_updated_no_
 async function ensureSellerCopyForSku(sku){
  const {sellerCopyConfig:config,sellerCopyJob:j,sellerCopyBatch:b}=await chrome.storage.local.get(['sellerCopyConfig','sellerCopyJob','sellerCopyBatch']);
  if(!config?.enabled_in_buyer_queue)return {status:'disabled'};
- if(j?.sku===sku){if(j.status==='running')return {status:'waiting'};if(j.status==='paused')return {status:'paused'};if(['completed','completed_partial','skipped'].includes(j.status))return {status:'done',cleanup_required:j.cleanup_required};}
+ if(j?.sku===sku){if(j.status==='running')return {status:'waiting'};if(j.status==='paused')return {status:'paused'};if(['completed','completed_partial','skipped'].includes(j.status))return {status:'done',terminal_status:j.status,reason:j.reason,discard_verified:j.discard_verified===true,cleanup_required:j.cleanup_required};}
  if(j?.status==='running')return {status:'waiting'};
  if(await sellerAlreadyCollected(sku))return {status:'done',already_collected:true};
  if(b?.status==='running')return {status:'waiting'};

@@ -20,4 +20,12 @@ with sync_playwright() as p:
  assert call({'action':'delete-owned','draft_id':'777'})['status']=='unsupported_action'
  page.set_content('<h1>商品复制</h1><div>您已开始创建商品</div><button>删除草稿</button>')
  assert call({'action':'search','sku':'123'})['status']=='existing_state_do_not_touch'
+ page.set_content('<h1>商品复制</h1><input type=search value=123><article><span>123</span><button onclick="window.textSkuClicked=true">添加</button></article>')
+ assert call({'action':'copy','sku':'999'})['status']=='exact_sku_card_not_loaded'
+ assert call({'action':'copy','sku':'123'})['status']=='copy_clicked'
+ assert page.evaluate('window.textSkuClicked') is True
+ page.set_content('<h1>商品复制</h1><input type=search value=123><article><span>999</span><button>添加</button></article>')
+ r=call({'action':'copy','sku':'123'})
+ assert r['status']=='exact_sku_card_not_loaded'
+ assert r['inspection']['search_values']==['requested_sku']
  browser.close();print('PASS exact SKU card, normal Back -> explicit Exit without saving -> search-page return, Save and Delete never clicked')
